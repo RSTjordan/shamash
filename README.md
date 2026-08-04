@@ -3,6 +3,8 @@
 *The shamash is the attendant candle — the one that lights the others and then
 stands to the side.*
 
+**[עברית](README.he.md)** 🇮🇱
+
 A chief of staff for your WhatsApp, running on your own machine.
 
 It reads your chats twice a day and sends you one digest: what it handled, what
@@ -13,6 +15,15 @@ answer somebody.
 
 It is not a cloud service. There is no server, no account, and nothing to sign
 up for. It runs on your computer, on your WhatsApp, and stops when you close it.
+
+Two things that set it apart:
+
+- **It runs on the Claude subscription you already pay for.** No API key, no
+  per-message bill, no second account. If you have Claude Code, you have the
+  engine.
+- **Nothing phones home.** No telemetry, no analytics, no server of ours
+  anywhere. Your messages live in a file on your disk and in your own Claude
+  session — nowhere else.
 
 📄 **[Welcome to Shamash (PDF)](docs/welcome/Welcome-to-Shamash.pdf)** — five
 minutes, illustrated: what it does, how it works, where it stops, and the first
@@ -35,6 +46,8 @@ install.** The installer will make you confirm it anyway.
 - **Claude Code**, signed in — realistically on a **Max** plan.
 - A computer that stays on. This is not a phone app.
 - ~25 minutes, of which about 2 are you doing something.
+- **No second phone number.** It starts inside your own WhatsApp; the
+  real-contact upgrade is optional, later, and explained when you're ready.
 
 Optional, and the installer asks you about both:
 
@@ -67,6 +80,13 @@ stage, not the install.
 - **Digest, twice a day** — what it did, what needs you, what's on your
   calendar, unread mail worth your attention.
 - **On-demand commands** — message it in your own chat and it does the thing.
+- **Talk while it works** — send a follow-up mid-task and it folds it into the
+  work in progress, the way a person would. No queue, no "wait for it to
+  finish".
+- **Long-running projects** — hand it something multi-day ("take the ball on
+  X") and a scheduled runner keeps advancing it in bounded work-shifts,
+  reporting each one to your chat. The work survives the conversation that
+  started it — and a stalled project tells you it stalled.
 - **Calendar** — books meetings people ask you for, after checking you're
   actually free; turns "I'll send it tomorrow" into a reminder.
 - **Approval cards** — anything risky stops and asks you in WhatsApp. React 👍
