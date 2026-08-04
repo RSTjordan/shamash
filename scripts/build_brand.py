@@ -9,11 +9,12 @@ Three marks, 1024x1024 each:
 
 The warm pair sits on the terracotta of the agent's existing avatar. That is
 deliberate: a lone flame on a black ground reads as a memorial candle, and this
-is a working assistant, not a yahrzeit. Use the warm marks for profile pictures
-and the dark one only where the surrounding UI is already dark.
+is a working assistant, not a yahrzeit. The candle mark is the profile picture;
+the robot-warm one is companion art that pairs with the cover, and the dark one
+belongs only where the surrounding UI is already dark.
 
-Everything sits inside the central 84% so a circular crop (WhatsApp, GitHub)
-never clips it. Rendered with headless Edge/Chrome — same dependency as
+The art stays near the vertical axis, well inside the circle inscribed in the
+square, so a circular crop (WhatsApp, GitHub) never clips it. Rendered with headless Edge/Chrome — same dependency as
 build_welcome.py, nothing new to install.
 
 Usage:  python scripts/build_brand.py [size]
@@ -106,7 +107,8 @@ ROBOT = """
 # zooms in with a tighter viewBox rather than by rescaling the art, so the two
 # marks stay pixel-identical where they overlap.
 MARKS = {
-    # profile-picture candidates — warm ground, unmistakably not a memorial candle
+    # warm ground, unmistakably not a memorial candle. The candle-only mark
+    # below is the avatar; this first one is companion art for the cover.
     "shamash-robot-candle-warm": (
         "warm", "20 -6 240 305", ("140", "205", "150"), ROBOT + CANDLE,
     ),

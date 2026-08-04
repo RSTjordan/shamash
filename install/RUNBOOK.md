@@ -159,7 +159,12 @@ Write `config.json` and `brief/AGENT_BRIEF.md` from
    populated with strong defaults (never message someone new, never discuss
    money, never accept anything contractual). They can add; walk them through
    removing anything only if they ask.
-6. **Digest times**, and which chat is the assistant's channel.
+6. **Digest times**, and which chat is the assistant's channel. On the
+   chat-with-yourself route, don't just ask which chat — **create it with them**:
+   a WhatsApp group containing only them, named after the assistant. It is not
+   the same as WhatsApp's built-in *Message yourself* chat, which can't be named
+   or given an icon. Record the resulting JID in the config; later stages send
+   into it.
 7. **What to call it.** Default "Claude". This is their agent's name, not the
    project's.
 
@@ -246,17 +251,33 @@ If the file is missing (a partial clone), regenerate it:
 python scripts\build_brand.py
 ```
 
-The caption depends on which channel stage 2 landed on:
+That needs headless Edge or Chrome, same as stage 9b. If it isn't there, skip
+the image entirely and move on — a missing profile picture is not worth
+stalling an install over.
 
-- **Dedicated number (b).** *"And this is my face, if you want me to have one.
-  Long-press the image → save, then in WhatsApp Business: Settings → your
-  profile at the top → the camera icon → choose it from your gallery. Then I
-  show up in your chat list looking like something, instead of a grey circle."*
-- **Chat-with-yourself (a).** There is no separate account to give a picture to,
-  so the picture goes on the group: *"And this is my face. Save it, then open
-  this group → tap the group name at the top → the camera icon on the group
-  icon → choose it. It won't change what I do — it just means you can find me in
-  the chat list at a glance."*
+**Branch on what actually got built, not on what they said in stage 2.** Read
+`channels.contact.enabled` from their config: someone who chose (b) but hasn't
+bought the number yet was finished on (a), and stage 6b never ran, so telling
+them to open WhatsApp Business would send them into an app they don't have.
+
+- **`contact.enabled: true` — it has its own number.** *"And this is my face, if
+  you want me to have one. Save the image to your gallery, then in WhatsApp
+  Business: Settings → your profile at the top → the camera icon → choose it.
+  Then I show up in your chat list looking like something, instead of a grey
+  circle."*
+- **`contact.enabled: false` — the chat-with-yourself channel.** There is no
+  separate account to give a picture to. If their channel is a **group** they
+  created, the picture goes on the group icon: *"And this is my face. Save it,
+  then open this chat → tap its name at the top → the camera icon → choose it.
+  It won't change what I do — it just means you can find me in the chat list at
+  a glance."* If they are on WhatsApp's built-in *Message yourself* chat
+  instead, it takes no icon: send the image anyway, and say it's theirs for
+  whenever they give the assistant a number of its own. **Check which one they
+  have before writing the caption** — do not send taps that don't exist.
+
+Say "save the image", not "long-press to save": on most Android setups it is
+already in their gallery, and the long-press menu they'd be hunting for is an
+iPhone thing.
 
 Either way it is one message, optional for them, and it does not block stage 10.
 If they ignore it, move on — do not ask again.
