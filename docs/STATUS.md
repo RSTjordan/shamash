@@ -56,5 +56,5 @@ The kit is built inside live sessions with Yarden. When a session ends, work
 stops — there is no background job that continues it and nothing that reports
 it as open. Between 20:50 and 00:00 on 2026-08-04 it looked to him like an
 agent was working on it; nothing was. The cross-project ledger in
-`whatsapp-agent/state/OPEN-WORK.md` now carries these items so they surface in
+`whatsapp-agent/OPEN-WORK.md` now carries these items so they surface in
 every scan digest instead of living only in a session that ended.
