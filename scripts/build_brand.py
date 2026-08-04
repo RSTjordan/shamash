@@ -1,8 +1,10 @@
 """Build the brand marks as square PNGs (profile pictures, social, favicons).
 
 Three marks, 1024x1024 each:
+  shamash-candle-warm.png        the candle alone -- THE avatar. This is the one
+                                 the installer sends the user at stage 9c to set
+                                 as their agent's profile picture.
   shamash-robot-candle-warm.png  the attendant robot lit by the candle it tends
-  shamash-candle-warm.png        the candle alone
   shamash-robot-candle-dark.png  the same robot on the deep ground, for dark UI
 
 The warm pair sits on the terracotta of the agent's existing avatar. That is

@@ -232,6 +232,35 @@ chat instead — the PDF is the onboarding.
 If the build fails (no Edge, no `markdown` package), send
 `docs/welcome/welcome.html` instead and say it opens in a browser.
 
+### Stage 9c — Give it a face
+
+Immediately after the welcome PDF, send them the avatar —
+`docs/brand/shamash-candle-warm.png` — as an **image** in the same chat. It is
+already square, 1024px, and drawn so a circular crop never clips it, so they can
+set it straight from the chat on their phone. Do not skip this and do not offer
+them a choice of marks; this is the one.
+
+If the file is missing (a partial clone), regenerate it:
+
+```
+python scripts\build_brand.py
+```
+
+The caption depends on which channel stage 2 landed on:
+
+- **Dedicated number (b).** *"And this is my face, if you want me to have one.
+  Long-press the image → save, then in WhatsApp Business: Settings → your
+  profile at the top → the camera icon → choose it from your gallery. Then I
+  show up in your chat list looking like something, instead of a grey circle."*
+- **Chat-with-yourself (a).** There is no separate account to give a picture to,
+  so the picture goes on the group: *"And this is my face. Save it, then open
+  this group → tap the group name at the top → the camera icon on the group
+  icon → choose it. It won't change what I do — it just means you can find me in
+  the chat list at a glance."*
+
+Either way it is one message, optional for them, and it does not block stage 10.
+If they ignore it, move on — do not ask again.
+
 ## Stage 10 — Hand over
 
 Run `scripts/doctor.cmd` and show the result. Then tell them, in plain words:

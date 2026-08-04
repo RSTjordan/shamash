@@ -16,7 +16,9 @@ up for. It runs on your computer, on your WhatsApp, and stops when you close it.
 
 📄 **[Welcome to Shamash (PDF)](docs/welcome/Welcome-to-Shamash.pdf)** — five
 minutes, illustrated: what it does, how it works, where it stops, and the first
-five things to send it. The installer hands you this as its first message.
+five things to send it. The installer hands you this as its first message —
+followed by [the avatar](docs/brand/shamash-candle-warm.png), so your assistant
+has a face in your chat list instead of a grey circle.
 
 ---
 
