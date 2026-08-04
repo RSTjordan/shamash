@@ -1,0 +1,39 @@
+{
+  "_comment": "Copy to config.json and fill in. The installer does this for you. config.json is gitignored and is never touched by an update.",
+
+  "agent_name": "Claude",
+
+  "owner": {
+    "name": "YOUR NAME",
+    "phone": "447700900123",
+    "language": "English",
+    "reply_language": "English",
+    "timezone": "Europe/London"
+  },
+
+  "claude_exe": "",
+
+  "channels": {
+    "main": {
+      "enabled": true,
+      "group_jid": "",
+      "bridge_port": 8080
+    },
+    "contact": {
+      "enabled": false,
+      "bridge_port": 8081
+    }
+  },
+
+  "features": {
+    "voice_notes": false,
+    "approvals": true
+  },
+
+  "permission_mode": "manual",
+  "allowed_tools": "Bash,PowerShell,Read,Write,Edit,Glob,Grep",
+
+  "schedule": {
+    "scan_times": ["08:00", "20:00"]
+  }
+}

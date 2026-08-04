@@ -1,0 +1,31 @@
+# Everything personal. This file is the last line of defence, not the first —
+# the design is that personal content never enters the repo in the first place
+# (see docs/ARCHITECTURE.md). A .gitignore cannot un-commit a name.
+
+# The user's answers
+config.json
+
+# The user's own words. Only the *.template.md files belong to the kit.
+brief/*.md
+!brief/*.template.md
+
+# The WhatsApp bridge: message history in the clear, and the pairing token.
+bridge/
+store/
+*.db
+.bridge-token
+
+# Runtime
+state/
+logs/
+whisper-env/
+jobs/
+*.log
+
+# Local machine / editor noise
+.claude/settings.local.json
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
