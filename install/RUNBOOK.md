@@ -76,7 +76,32 @@ If yes, ask the two disqualifying questions **now**, not at minute 20:
    Re-registering it will move that account and sign the other device out.
    They need to know this before, not discover it.
 
-If either answer is bad, set `channels.contact.enabled: false` and continue.
+**If they have no spare number, do not just move on — give them the two real
+options and let them choose.** This is the single decision that most changes
+how the finished thing feels, so it deserves thirty seconds:
+
+> *"No problem — there are two ways to go, and you can switch later.*
+>
+> *(a) **Use the chat-with-yourself channel.** Free, works today, nothing else
+> to buy. The catch: your assistant's messages arrive in a group as though
+> **you** sent them, so your phone never notifies you. You have to remember to
+> go and look. Fine if you mostly want the twice-daily digest.*
+>
+> *(b) **Get a second number just for it** — an app like Onoff or Wabi sells one
+> for roughly $5–7 a month, no physical SIM. Then your assistant becomes a real
+> contact: its messages arrive as messages, and something urgent actually rings
+> your phone.*
+>
+> *Honestly: the person who built this started on (a) and disliked it enough to
+> go and buy a number. If you think you'll want it to reach you rather than
+> wait for you, (b) is the one. Recommended: start on (a), and move to (b) the
+> first time you miss something that mattered. [a/b]"*
+
+If they choose (b) but haven't bought the number yet, don't stall the install.
+Finish everything on (a), and tell them that adding the number later is a
+single re-run of stage 6b — nothing gets rebuilt.
+
+If they stay on (a), set `channels.contact.enabled: false` and continue.
 Nothing later in the install may assume the contact channel exists.
 
 ## Stage 3 — Dependencies
