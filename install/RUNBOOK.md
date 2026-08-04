@@ -33,7 +33,7 @@ Check and print a go/no-go table. Do not continue past a NO-GO.
 | Claude Code present + signed in | `claude --version` | NO-GO — they must install and sign in first |
 | Plan | Ask: Max, Pro, or unsure | Pro → warn clearly it will hit limits; let them decide |
 | Disk | ≥ 5 GB free (≥ 10 GB if they want voice notes) | Warn |
-| Ports 8080, 8081, 8090 free | `Get-NetTCPConnection -LocalPort` | Note which are taken; stage 3 will reassign |
+| Ports 8080, 8081, 8090 free | `Get-NetTCPConnection -LocalPort` | Note which are taken; write different `bridge_port` values into `config.json` at stage 6 — the launchers read ports from config |
 | `git` | `git --version` | Fixable in stage 3 |
 | Machine stays on | Ask | Warn: on a laptop that sleeps, it only runs when awake |
 
@@ -87,8 +87,9 @@ how the finished thing feels, so it deserves thirty seconds:
 > **you** sent them, so your phone never notifies you. You have to remember to
 > go and look. Fine if you mostly want the twice-daily digest.*
 >
-> *(b) **Get a second number just for it** — an app like Onoff or Wabi sells one
-> for roughly $5–7 a month, no physical SIM. Then your assistant becomes a real
+> *(b) **Get a second number just for it** — a second-line app like Onoff (or
+> any "second phone number" app in your app store) sells one for roughly $5–7
+> a month, no physical SIM. Then your assistant becomes a real
 > contact: its messages arrive as messages, and something urgent actually rings
 > your phone.*
 >
@@ -109,6 +110,9 @@ Nothing later in the install may assume the contact channel exists.
 Install only what's missing, and only what stage 2 asked for. Use `winget`.
 
 - `git`, `go`, `python` (3.11+), `uv`, `ffmpeg` (voice notes only)
+  - Python must come with the Windows launcher: every launcher in `scripts\`
+    invokes it as `py -3`, so `py -3 --version` is the check that matters,
+    not `python --version`. The winget install includes it.
 - **gcc** — the classic failure. The bridge needs CGO. Install MSYS2, then
   `pacman -S mingw-w64-ucrt-x86_64-gcc`, add `ucrt64\bin` to PATH for this
   session, and set `CGO_ENABLED=1`.
@@ -118,8 +122,10 @@ Install only what's missing, and only what stage 2 asked for. Use `winget`.
 ## Stage 4 — Build the bridge
 
 1. Clone `https://github.com/verygoodplugins/whatsapp-mcp` into `bridge/`.
-2. Apply the patches in `patches/` (each is a `.patch` with a `.md` explaining
-   what it does and why).
+2. Apply the changes described in `patches/`. Each patch is a Markdown
+   document describing the change, not a `.patch` diff — upstream's layout
+   drifts, and a described change survives drift better than line numbers.
+   `patches/README.md` gives the order and says which are required.
 3. Build. If the build fails on CGO, go back to gcc in stage 3 — that is nearly
    always the cause.
 4. Start it and confirm it responds before continuing.
@@ -195,16 +201,103 @@ broken. Interactive auth does not always carry over to background runs. If the
 tools aren't reachable, say so plainly rather than letting them find out in a
 week when nothing gets booked.
 
+## Stage 7b — Voice (only if they said yes in stage 2)
+
+The watcher expects a dedicated venv at `whisper-env\` in the repo root — it
+runs the transcription daemon with `whisper-env\Scripts\python.exe` and never
+touches the system Python:
+
+    py -3 -m venv whisper-env
+    whisper-env\Scripts\pip install faster-whisper
+
+Then pre-download the model so the first voice note isn't a 3.3 GB surprise:
+start the daemon once in the foreground —
+`whisper-env\Scripts\python.exe scripts\whisper-daemon.py` — and poll
+`http://127.0.0.1:8090/health` until it reports `loaded: true`, then stop it
+(the watcher will supervise it from now on). English-only installs should set
+`features.voice_model` to `large-v3-turbo` first — much smaller than the
+default Hebrew-tuned model. Tell them what is downloading and how big it is. Set
+`features.voice_notes` to `true` in `config.json` only AFTER the model loads
+once successfully — the setting is the last step, not the first. The watcher
+starts and supervises the daemon by itself; there is no separate task to
+register.
+
 ## Stage 8 — Autostart
 
-Register the scheduled tasks: watcher, bridge, scans. Then the generic
-scheduler, so they never have to register a Windows task again.
+Register the Windows scheduled tasks. There are exactly four, and the names
+are a contract — `doctor`, `update` and `uninstall` all look tasks up by
+these names:
 
-- Remove the battery conditions — the default stops tasks on battery, which on
-  a laptop means it silently doesn't run.
-- Use `run-hidden.vbs` so nothing flashes a console window at them.
-- Warn them: these are logon-triggered. A reboot that stops at the login screen
-  leaves everything dead.
+| Task | Trigger | Action | Settings |
+|---|---|---|---|
+| `ShamashBridge` | At logon | `run-hidden.vbs` → `scripts\start-bridge.cmd` | restart on failure 10× / 2 min, no time limit |
+| `ShamashContactBridge` | At logon | `run-hidden.vbs` → `scripts\start-contact-bridge.cmd` | same — **register only if `channels.contact.enabled` is true** |
+| `ShamashWatcher` | At logon | `pyw.exe -3 scripts\watcher.py` (windowless python, no VBS needed) | restart on failure 10× / 2 min, no time limit |
+| `ShamashScheduler` | Every 5 minutes, indefinitely | `run-hidden.vbs` → `scripts\run-scheduler.cmd` | 10 min time limit |
+
+All four: battery conditions REMOVED (the default silently stops tasks on
+battery, which on a laptop means it silently doesn't run), multiple instances
+**IgnoreNew**, StartWhenAvailable, working directory = the repo root.
+`scripts\run-hidden.vbs` waits for its child and propagates the exit code —
+that is what makes restart-on-failure and the time limit act on the real
+process — and nothing ever flashes a console window at them.
+
+`schtasks /Create` cannot express the battery settings, so use PowerShell.
+The pattern, with `$root` set to the absolute repo path (fill the other three
+rows in from the table):
+
+```powershell
+$root = "C:\path\to\shamash"   # substitute the real path
+$action = New-ScheduledTaskAction -Execute "wscript.exe" `
+  -Argument "`"$root\scripts\run-hidden.vbs`" `"$root\scripts\start-bridge.cmd`"" `
+  -WorkingDirectory $root
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
+  -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew `
+  -StartWhenAvailable -RestartCount 10 `
+  -RestartInterval (New-TimeSpan -Minutes 2) `
+  -ExecutionTimeLimit ([TimeSpan]::Zero)
+Register-ScheduledTask -TaskName "ShamashBridge" -Action $action `
+  -Trigger $trigger -Settings $settings -Force
+```
+
+Differences for the other rows:
+
+```powershell
+# ShamashWatcher — windowless python directly, no VBS. Resolve the full path:
+# a scheduled task can't be trusted to share your PATH.
+$action = New-ScheduledTaskAction -Execute (Get-Command pyw.exe).Source `
+  -Argument "-3 `"$root\scripts\watcher.py`"" -WorkingDirectory $root
+
+# ShamashScheduler — repeating trigger and a real time limit:
+$trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `
+  -RepetitionInterval (New-TimeSpan -Minutes 5) `
+  -RepetitionDuration ([TimeSpan]::MaxValue)
+# ...and in its settings set: -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
+```
+
+**There is no scan task.** Scans ride the generic scheduler: seed
+`state\schedule.json` with one entry per time in `schedule.scan_times` from
+their `config.json`, plus the job-runner tick — after this, a new recurring
+job is an edit to that file, never another Windows task:
+
+```json
+[
+  {"name": "scan-morning", "command": "scripts\\run-scan.cmd", "at": "08:00", "every_days": 1, "enabled": true},
+  {"name": "scan-evening", "command": "scripts\\run-scan.cmd", "at": "20:00", "every_days": 1, "enabled": true},
+  {"name": "job-runner", "command": "scripts\\run-job-runner.cmd", "every_minutes": 30, "enabled": true}
+]
+```
+
+(The scan times above are the defaults — write the ones they chose in
+stage 6.)
+
+Then start each task once with `schtasks /Run /TN <name>` and confirm with
+`scripts\doctor.cmd` that every task is registered and both bridges answer
+their health checks.
+
+Warn them: these are logon-triggered. A reboot that stops at the login screen
+leaves everything dead until they log in.
 
 ## Stage 9 — Smoke test, and it ends in WhatsApp
 
@@ -214,15 +307,15 @@ Have their newly installed agent send them a real WhatsApp message: *"I'm
 alive. Reply 'test' and I'll know the whole loop works."*
 
 Then wait for their reply to come back through the watcher. Only a completed
-round trip counts as installed. If it doesn't arrive, run `doctor` and work
-the layer it points at.
+round trip counts as installed. If it doesn't arrive, run `scripts\doctor.cmd`
+and work the layer it points at.
 
 ### Stage 9b — The welcome document
 
 Once the round trip works, the agent's **second** message is the welcome PDF:
 
 ```
-python scripts\build_welcome.py          # regenerates docs\welcome\Welcome-to-Shamash.pdf
+py -3 scripts\build_welcome.py          # regenerates docs\welcome\Welcome-to-Shamash.pdf
 ```
 
 Send `docs/welcome/Welcome-to-Shamash.pdf` into the same chat, captioned:
@@ -248,7 +341,7 @@ them a choice of marks; this is the one.
 If the file is missing (a partial clone), regenerate it:
 
 ```
-python scripts\build_brand.py
+py -3 scripts\build_brand.py
 ```
 
 That needs headless Edge or Chrome, same as stage 9b. If it isn't there, skip

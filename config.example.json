@@ -27,6 +27,7 @@
 
   "features": {
     "voice_notes": false,
+    "_voice_model": "optional: a faster-whisper model id for voice transcription; default is ivrit-ai/whisper-large-v3-turbo-ct2 (Hebrew-tuned, also fine for English)",
     "approvals": true
   },
 
