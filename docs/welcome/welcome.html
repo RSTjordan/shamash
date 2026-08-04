@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Welcome to Shamash</title>
+<style>
+/* ------------------------------------------------------------------ base */
+:root{
+  --ink:#15161a; --ink-2:#3d414b; --ink-3:#6b7280;
+  --line:#e3e5ea; --paper:#ffffff; --wash:#f7f8fa;
+  --flame:#e8a33d; --flame-2:#d4762a; --deep:#0e1016; --deep-2:#1c2030;
+  --wa:#25d366; --wa-bubble:#dcf8c6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  color:var(--ink); background:#5b5f6b; font-size:10.5pt; line-height:1.55;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.page{
+  width:210mm; min-height:297mm; margin:0 auto; background:var(--paper);
+  padding:20mm 18mm; position:relative; overflow:hidden;
+  page-break-after:always; break-after:page;
+}
+.page:last-child{page-break-after:auto;break-after:auto}
+@media screen{ .page{margin:26px auto;box-shadow:0 18px 50px rgba(0,0,0,.35);border-radius:3px} }
+
+h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.015em}
+h2{font-size:19pt;font-weight:650;margin-bottom:3mm}
+h3{font-size:11.5pt;font-weight:650;margin-bottom:1.5mm}
+p{margin:0 0 3.2mm}
+strong{font-weight:650}
+.lead{font-size:12pt;color:var(--ink-2);line-height:1.5;margin-bottom:7mm;max-width:150mm}
+.eyebrow{
+  font-size:8pt;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--flame-2);margin-bottom:2.5mm;
+}
+.rule{height:2px;width:22mm;background:var(--flame);margin:0 0 6mm;border-radius:2px}
+.muted{color:var(--ink-3)}
+code{font-family:Consolas,monospace;font-size:9pt;background:var(--wash);
+     border:1px solid var(--line);border-radius:3px;padding:.5px 4px}
+
+/* ----------------------------------------------------------------- cover */
+.cover{
+  background:radial-gradient(120% 85% at 50% 0%,#252a3d 0%,var(--deep) 62%);
+  color:#fff; padding:0; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; text-align:center;
+}
+.cover::after{
+  content:"";position:absolute;inset:auto 0 0 0;height:70mm;
+  background:radial-gradient(60% 100% at 50% 100%,rgba(232,163,61,.16),transparent 70%);
+}
+.flame-wrap{position:relative;margin-bottom:9mm}
+.glow{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:52mm;height:52mm;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,163,61,.34) 0%,transparent 68%);
+}
+.wordmark{font-size:44pt;font-weight:300;letter-spacing:.16em;margin:0 0 4mm}
+.wordmark b{font-weight:650}
+.tagline{font-size:13pt;color:#c8ccd8;font-weight:300;max-width:120mm;line-height:1.5}
+.cover-sub{
+  margin-top:12mm;font-size:9.5pt;color:#8f96a8;letter-spacing:.03em;
+  display:flex;gap:0 5mm;flex-wrap:wrap;justify-content:center;
+}
+.cover-sub span{white-space:nowrap}
+.cover-note{
+  position:absolute;bottom:15mm;left:0;right:0;text-align:center;
+  font-size:8.5pt;color:#727a8d;letter-spacing:.04em;
+}
+
+/* ----------------------------------------------------------------- cards */
+.grid{display:flex;flex-wrap:wrap;gap:4mm;margin:0 0 6mm}
+.card{
+  flex:1 1 calc(50% - 2mm); min-width:70mm; background:var(--paper);
+  border:1px solid var(--line); border-left:3px solid var(--flame);
+  border-radius:4px; padding:4.5mm 5mm;
+}
+.card h3{margin-bottom:1.2mm}
+.card p{margin:0;font-size:9.5pt;color:var(--ink-2)}
+.card .tag{font-size:7.5pt;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+           color:var(--flame-2);display:block;margin-bottom:1.5mm}
+
+.callout{
+  background:var(--wash);border:1px solid var(--line);border-radius:5px;
+  padding:5mm 6mm;margin:0 0 6mm;
+}
+.callout.warn{background:#fff8ec;border-color:#f0dcb8}
+.callout.dark{background:var(--deep);color:#dfe3ec;border-color:var(--deep)}
+.callout.dark strong{color:#fff}
+.callout p:last-child{margin-bottom:0}
+
+/* -------------------------------------------------------------- whatsapp */
+.phone{
+  background:#e9e2db;border:1px solid #d8d0c8;border-radius:8px;
+  padding:4mm;margin:0 0 5mm;
+}
+.bubble{
+  max-width:80%;padding:2.2mm 3.2mm;border-radius:7px;font-size:9.5pt;
+  line-height:1.42;margin-bottom:2mm;position:relative;
+}
+.bubble.me{background:var(--wa-bubble);margin-left:auto;border-top-right-radius:2px}
+.bubble.bot{background:#fff;border-top-left-radius:2px}
+.bubble .who{font-size:7.5pt;font-weight:700;color:var(--flame-2);display:block;margin-bottom:.8mm}
+.bubble.me .who{color:#3f7d4e;text-align:right}
+.bubble:last-child{margin-bottom:0}
+.bubble em{color:var(--ink-3);font-style:normal;font-size:9pt}
+
+/* ----------------------------------------------------------------- table */
+table{width:100%;border-collapse:collapse;font-size:9.5pt;margin:0 0 6mm}
+th,td{border-bottom:1px solid var(--line);padding:2.6mm 3mm;text-align:left;vertical-align:top}
+th{font-size:8pt;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);
+   border-bottom:1.5px solid var(--ink-3);font-weight:700}
+tr:last-child td{border-bottom:none}
+td.k{font-weight:650;white-space:nowrap;width:42mm}
+
+/* ------------------------------------------------------------------ list */
+ul.clean{list-style:none;padding:0;margin:0 0 6mm}
+ul.clean li{padding-left:7mm;position:relative;margin-bottom:2.4mm;color:var(--ink-2)}
+ul.clean li::before{
+  content:"";position:absolute;left:0;top:2.2mm;width:3mm;height:3mm;
+  border-radius:50%;background:var(--flame);
+}
+ul.never li::before{background:#c0392b}
+ul.clean li b{color:var(--ink)}
+
+.step{display:flex;gap:4mm;margin-bottom:4mm;align-items:flex-start}
+.step .n{
+  flex:0 0 8mm;height:8mm;border-radius:50%;background:var(--deep);color:#fff;
+  font-size:10pt;font-weight:650;display:flex;align-items:center;justify-content:center;
+}
+.step div p{margin:0;font-size:9.5pt;color:var(--ink-2)}
+.step div b{color:var(--ink);font-size:10.5pt}
+
+.pagenum{
+  position:absolute;bottom:11mm;right:18mm;font-size:8pt;color:var(--ink-3);
+  letter-spacing:.08em;
+}
+.brandfoot{
+  position:absolute;bottom:11mm;left:18mm;font-size:8pt;color:var(--ink-3);
+  letter-spacing:.08em;
+}
+
+/* ------------------------------------------------------- screen-only anim */
+@media screen{
+  @keyframes flicker{
+    0%,100%{transform:scale(1) translateY(0);opacity:.95}
+    35%{transform:scale(1.06,.97) translateY(-.6mm);opacity:1}
+    60%{transform:scale(.97,1.05) translateY(.3mm);opacity:.9}
+  }
+  @keyframes breathe{0%,100%{opacity:.55;transform:translate(-50%,-50%) scale(1)}
+                     50%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}}
+  @keyframes rise{from{opacity:0;transform:translateY(6mm)}to{opacity:1;transform:none}}
+  .flame-svg{animation:flicker 2.6s ease-in-out infinite;transform-origin:50% 100%}
+  .glow{animation:breathe 3.4s ease-in-out infinite}
+  .wordmark,.tagline,.cover-sub{animation:rise .9s cubic-bezier(.2,.7,.3,1) both}
+  .tagline{animation-delay:.15s} .cover-sub{animation-delay:.3s}
+  .card,.bubble,.step{animation:rise .55s cubic-bezier(.2,.7,.3,1) both}
+  .card:nth-child(2){animation-delay:.07s}
+  .card:nth-child(3){animation-delay:.14s}
+  .card:nth-child(4){animation-delay:.21s}
+  .bubble:nth-child(2){animation-delay:.12s}
+  .bubble:nth-child(3){animation-delay:.24s}
+  .bubble:nth-child(4){animation-delay:.36s}
+  .bubble:nth-child(5){animation-delay:.48s}
+  .bubble:nth-child(6){animation-delay:.6s}
+  .card:hover{transform:translateY(-1mm);box-shadow:0 6px 18px rgba(0,0,0,.09);
+              transition:.25s}
+}
+@media print{
+  body{background:#fff}
+  .page{margin:0;box-shadow:none;border-radius:0}
+  .flowdot{display:none}   /* a frozen dot mid-diagram just looks like a smudge */
+  @page{size:A4;margin:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ 1 · COVER -->
+<section class="page cover">
+  <div class="flame-wrap">
+    <div class="glow"></div>
+    <svg class="flame-svg" width="86" height="122" viewBox="0 0 86 122" fill="none">
+      <!-- candle body -->
+      <rect x="30" y="62" width="26" height="52" rx="4" fill="#f2e7d4"/>
+      <rect x="30" y="62" width="9" height="52" rx="4" fill="#fff" opacity=".45"/>
+      <rect x="26" y="110" width="34" height="6" rx="3" fill="#c9b393"/>
+      <!-- wick -->
+      <rect x="42" y="54" width="2.4" height="10" rx="1.2" fill="#4a4033"/>
+      <!-- flame -->
+      <path d="M43 8c9 13 17 20 17 31a17 17 0 1 1-34 0c0-11 8-18 17-31z" fill="url(#f1)"/>
+      <path d="M43 26c4.5 7 8 11 8 16a8 8 0 1 1-16 0c0-5 3.5-9 8-16z" fill="#fff3d0" opacity=".92"/>
+      <defs>
+        <linearGradient id="f1" x1="43" y1="8" x2="43" y2="56" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#ffd98a"/><stop offset=".55" stop-color="#e8a33d"/>
+          <stop offset="1" stop-color="#d4762a"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+
+  <h1 class="wordmark">SHAMA<b>SH</b></h1>
+  <p class="tagline">The attendant candle — the one that lights the others,<br>then stands to the side.</p>
+
+  <div class="cover-sub">
+    <span>A chief of staff for your WhatsApp</span>
+    <span>·</span>
+    <span>Runs on your machine</span>
+    <span>·</span>
+    <span>No cloud, no account</span>
+  </div>
+
+  <div class="cover-note">START HERE — 5 minutes of reading, and you will know what you just installed</div>
+</section>
+
+<!-- ====================================================== 2 · WHAT IT IS -->
+<section class="page">
+  <div class="eyebrow">What you just installed</div>
+  <h2>Something that reads your WhatsApp so you don't have to</h2>
+  <div class="rule"></div>
+
+  <p class="lead">Twice a day it goes through everything that arrived, handles what is
+  obviously handleable, and sends you <strong>one message</strong>: what it did, what it
+  put in your calendar, and what it deliberately left for you — with the reason.</p>
+
+  <p>The rest of the time it sits there and waits for you to ask it something. You
+  message it the way you message a person: <em>"what did I miss in the work group?"</em>,
+  <em>"am I free Thursday morning?"</em>, <em>"remind me to call the garage tomorrow"</em>.
+  It answers in the same chat, in your language.</p>
+
+  <div class="grid">
+    <div class="card">
+      <span class="tag">The digest</span>
+      <h3>Twice a day, one message</h3>
+      <p>Everything that happened, sorted: what it handled, what it booked, what needs
+      you, and what it ignored as noise.</p>
+    </div>
+    <div class="card">
+      <span class="tag">On demand</span>
+      <h3>Message it like a person</h3>
+      <p>Questions, calendar, catching up on a group you have ignored for a week, finding
+      a file on your own computer.</p>
+    </div>
+    <div class="card">
+      <span class="tag">It acts</span>
+      <h3>Books, replies, reminds</h3>
+      <p>A clear "can we meet Tuesday at 10?" gets checked against your calendar and
+      booked — or two alternative slots offered.</p>
+    </div>
+    <div class="card">
+      <span class="tag">It learns</span>
+      <h3>Correct it once</h3>
+      <p>Tell it "answer shorter" or "always leave that to me" and it rewrites its own
+      instructions. The correction survives.</p>
+    </div>
+  </div>
+
+  <div class="callout dark">
+    <p><strong>What it is not.</strong> Not a cloud service, not a bot account, not a
+    company. There is no server holding your messages and no one to sign up with. It is a
+    program on your computer, using your WhatsApp, that stops the moment you close it.</p>
+  </div>
+
+  <div class="brandfoot">SHAMASH</div><div class="pagenum">2</div>
+</section>
+
+<!-- ======================================================= 3 · A DAY WITH -->
+<section class="page">
+  <div class="eyebrow">What it looks like</div>
+  <h2>A normal Tuesday</h2>
+  <div class="rule"></div>
+
+  <p class="lead" style="margin-bottom:4mm">One digest in the morning, one in the evening,
+  and whatever you ask in between. That is the whole product.</p>
+
+  <div class="phone">
+    <div class="bubble bot"><span class="who">Shamash · 08:00</span>
+      <b>✅ Handled</b><br>
+      · <b>Dana</b> — asked if Thursday 10:00 works. You were free, booked it.<br>
+      · <b>Roofing group</b> — sent the address they asked for; it was in the chat.<br><br>
+      <b>📅 Booked</b><br>
+      · Dana — coffee, Thu 10:00–10:30 · reminder: call the garage, 16:00<br><br>
+      <b>⚠️ Needs you</b><br>
+      · <b>Michael</b> — wants a price for the job. Money, so I left it.<br>
+      · <b>Mum</b> — asked twice about the weekend. Not my call to answer.<br><br>
+      <b>ℹ️</b> 41 other messages, nothing in them.
+    </div>
+    <div class="bubble me"><span class="who">You · 11:20</span>
+      what happened in the project group this week? I stopped reading it
+    </div>
+    <div class="bubble bot"><span class="who">Shamash</span>
+      Three things. The deadline moved to the 14th. The client rejected the second design.
+      And Ron asked <em>you</em>, twice, if you can be there Sunday — nobody answered him.
+    </div>
+    <div class="bubble me"><span class="who">You · 11:21</span>
+      tell him yes, I'll be there
+    </div>
+    <div class="bubble bot"><span class="who">Shamash</span>
+      Sent, in the group, in your usual tone. Also added Sunday to your calendar.
+    </div>
+    <div class="bubble me"><span class="who">You · 18:40</span>
+      stop replying in that group unless someone tags me
+    </div>
+    <div class="bubble bot"><span class="who">Shamash</span>
+      Noted — I wrote it into my instructions, so it holds from now on, not just today.
+    </div>
+  </div>
+
+  <div class="callout" style="margin-bottom:0">
+    <p><strong>Notice the last exchange.</strong> No setting, no menu — you said it in the
+    chat and it edited its own rulebook. That is how most of its behaviour gets built.</p>
+  </div>
+
+  <div class="brandfoot">SHAMASH</div><div class="pagenum">3</div>
+</section>
+
+<!-- ====================================================== 4 · HOW IT WORKS -->
+<section class="page">
+  <div class="eyebrow">Under the hood</div>
+  <h2>How it actually works</h2>
+  <div class="rule"></div>
+
+  <p class="lead">No magic, and worth understanding — because when something breaks, you
+  will know which of the four boxes to look at.</p>
+
+  <svg viewBox="0 0 640 300" width="100%" style="margin:0 0 6mm">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+        <path d="M0,0 L7,3.2 L0,6.4 z" fill="#9aa1b0"/>
+      </marker>
+      <linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#242a3c"/><stop offset="1" stop-color="#141824"/>
+      </linearGradient>
+    </defs>
+
+    <!-- boxes -->
+    <g font-family="Segoe UI,Arial" >
+      <rect x="8" y="60" width="118" height="74" rx="8" fill="#eef0f4" stroke="#d7dbe3"/>
+      <text x="67" y="88" text-anchor="middle" font-size="14" font-weight="600" fill="#15161a">WhatsApp</text>
+      <text x="67" y="107" text-anchor="middle" font-size="11" fill="#6b7280">your chats,</text>
+      <text x="67" y="121" text-anchor="middle" font-size="11" fill="#6b7280">your number</text>
+
+      <rect x="158" y="60" width="118" height="74" rx="8" fill="#fff" stroke="#e3e5ea"/>
+      <text x="217" y="88" text-anchor="middle" font-size="14" font-weight="600" fill="#15161a">The bridge</text>
+      <text x="217" y="107" text-anchor="middle" font-size="11" fill="#6b7280">a linked device</text>
+      <text x="217" y="121" text-anchor="middle" font-size="11" fill="#6b7280">on your laptop</text>
+
+      <rect x="308" y="46" width="132" height="102" rx="8" fill="url(#gd)"/>
+      <text x="374" y="80" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">The agent</text>
+      <text x="374" y="100" text-anchor="middle" font-size="11" fill="#b9c0d0">Claude Code,</text>
+      <text x="374" y="114" text-anchor="middle" font-size="11" fill="#b9c0d0">reading your</text>
+      <text x="374" y="128" text-anchor="middle" font-size="11" fill="#e8a33d">instruction files</text>
+
+      <rect x="472" y="60" width="160" height="74" rx="8" fill="#fff" stroke="#e3e5ea"/>
+      <text x="552" y="86" text-anchor="middle" font-size="14" font-weight="600" fill="#15161a">Its hands</text>
+      <text x="552" y="105" text-anchor="middle" font-size="11" fill="#6b7280">calendar · mail · files</text>
+      <text x="552" y="119" text-anchor="middle" font-size="11" fill="#6b7280">your computer</text>
+
+      <!-- memory -->
+      <rect x="158" y="205" width="282" height="66" rx="8" fill="#fff8ec" stroke="#f0dcb8"/>
+      <text x="299" y="230" text-anchor="middle" font-size="13" font-weight="600" fill="#15161a">Its memory — plain text files you can read</text>
+      <text x="299" y="249" text-anchor="middle" font-size="11" fill="#6b7280">how to behave · who people are · what it already did</text>
+      <text x="299" y="264" text-anchor="middle" font-size="10.5" fill="#a4712a">nothing hidden, nothing in a database you can't open</text>
+
+      <!-- arrows -->
+      <line x1="128" y1="88" x2="154" y2="88" stroke="#9aa1b0" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="278" y1="88" x2="304" y2="88" stroke="#9aa1b0" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="442" y1="88" x2="468" y2="88" stroke="#9aa1b0" stroke-width="2" marker-end="url(#ar)"/>
+      <!-- return path -->
+      <path d="M552 138 L552 178 L67 178 L67 138" fill="none" stroke="#25d366"
+            stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+      <!-- memory links -->
+      <path d="M374 148 L374 205" fill="none" stroke="#e8a33d" stroke-width="2"/>
+      <path d="M217 205 L217 148" fill="none" stroke="#e8a33d" stroke-width="2" opacity=".35"/>
+      <!-- label last, so it sits on top of the lines it crosses -->
+      <rect x="150" y="169" width="300" height="18" fill="#fff"/>
+      <text x="300" y="182" text-anchor="middle" font-size="10.5" fill="#1f9c50"
+            font-family="Segoe UI,Arial">the answer goes back into the same chat</text>
+
+      <!-- travelling dot: animates on screen, hidden in the printed PDF -->
+      <circle class="flowdot" r="4" fill="#e8a33d">
+        <animateMotion dur="4s" repeatCount="indefinite"
+          path="M128,88 L304,88 L468,88 L552,138 L552,178 L67,178 L67,110"/>
+      </circle>
+    </g>
+  </svg>
+
+  <div class="grid">
+    <div class="card"><span class="tag">Step 1</span><h3>It sees</h3>
+      <p>The bridge is a linked device, like WhatsApp Web. Messages land in a file on your
+      own disk.</p></div>
+    <div class="card"><span class="tag">Step 2</span><h3>It thinks</h3>
+      <p>A watcher wakes the agent and hands it the new messages plus its instruction
+      files — its whole character in plain text.</p></div>
+    <div class="card"><span class="tag">Step 3</span><h3>It acts</h3>
+      <p>Calendar, mail, your files, a shell. Only what the rules allow, and every action
+      is written down.</p></div>
+    <div class="card"><span class="tag">Step 4</span><h3>It reports</h3>
+      <p>The answer goes back into the same chat. Nothing counts as sent until it is
+      confirmed as delivered.</p></div>
+  </div>
+
+  <div class="brandfoot">SHAMASH</div><div class="pagenum">4</div>
+</section>
+
+<!-- ========================================================== 5 · ITS MIND -->
+<section class="page">
+  <div class="eyebrow">The part that makes it yours</div>
+  <h2>Its mind is a folder of text files</h2>
+  <div class="rule"></div>
+
+  <p class="lead">There is no training, no model of you sitting on a server. Everything it
+  knows about how to be you is a handful of Markdown files on your disk. Open them. Edit
+  them. They are the product.</p>
+
+  <table>
+    <tr><th>File</th><th>What it holds</th><th>Who writes it</th></tr>
+    <tr><td class="k">The brief</td>
+        <td>Its constitution — your tone, what it may do alone, what it must never touch,
+            how the digest is written.</td><td class="muted">You, then it</td></tr>
+    <tr><td class="k">People</td>
+        <td>Who is who. The nickname in your phone, the real name, how you talk to them.
+            Tell it once, it writes the row itself.</td><td class="muted">It, from you</td></tr>
+    <tr><td class="k">Jobs</td>
+        <td>What each scheduled run is for — the morning scan, the evening digest,
+            anything else you add later.</td><td class="muted">The kit</td></tr>
+    <tr><td class="k">Skills</td>
+        <td>A procedure worth reusing. "Summarise a group like this" — saved once, used
+            forever.</td><td class="muted">It, on request</td></tr>
+    <tr><td class="k">The log</td>
+        <td>Every action it took, one line each, so it can never act twice on the same
+            message.</td><td class="muted">It</td></tr>
+  </table>
+
+  <div class="callout warn">
+    <p><strong>This is the difference between it being generic and it being yours.</strong>
+    On day one it behaves like a careful stranger. After a week of you correcting it in the
+    chat — "shorter", "never answer him without me", "that group is noise" — the brief has
+    grown into something that only fits you. That file is the thing worth backing up.</p>
+  </div>
+
+  <h3 style="margin-top:2mm">Teaching it, in practice</h3>
+  <p class="muted" style="margin-bottom:4mm">Three sentences you can send it today, and
+  what each one permanently changes.</p>
+
+  <div class="step"><div class="n">1</div><div>
+    <b>"Ron is my brother-in-law, he runs the site."</b>
+    <p>A row appears in the People file. From now on it knows the tone and the context
+    without asking.</p></div></div>
+  <div class="step"><div class="n">2</div><div>
+    <b>"Keep your digests to ten lines."</b>
+    <p>It edits its own brief. Every future digest is shorter — not just the next one.</p>
+    </div></div>
+  <div class="step"><div class="n">3</div><div>
+    <b>"Save that as a skill."</b>
+    <p>Whatever it just did well becomes a written procedure it will follow the same way
+    next month.</p></div></div>
+
+  <div class="brandfoot">SHAMASH</div><div class="pagenum">5</div>
+</section>
+
+<!-- ======================================================== 6 · BOUNDARIES -->
+<section class="page">
+  <div class="eyebrow">Where it stops</div>
+  <h2>What it will never do on its own</h2>
+  <div class="rule"></div>
+
+  <p class="lead">These are not suggestions in a prompt — they are the rules it is handed
+  on every single run, and they are the reason it can be trusted with a WhatsApp account
+  that is genuinely yours.</p>
+
+  <ul class="clean never">
+    <li><b>Never message someone who isn't already in the conversation.</b> It answers; it
+      does not start relationships.</li>
+    <li><b>Never discuss money.</b> Prices, quotes, discounts, payments — it stops and
+      hands the message to you.</li>
+    <li><b>Never agree to anything binding.</b> Contracts, commitments, anything sensitive
+      goes on the "needs you" list.</li>
+    <li><b>Never delete or edit anything.</b> Not messages, not files, not events.</li>
+    <li><b>Never more than two replies in one chat per run.</b> If a conversation is
+      really moving, that is a sign it needs you, not more automation.</li>
+    <li><b>In groups, only when spoken to.</b> It acts on messages that mention you or
+      clearly ask you, and stays silent otherwise.</li>
+  </ul>
+
+  <div class="callout warn">
+    <p><strong>And the honest part.</strong> It is a language model with your WhatsApp and
+    a shell on your computer. It will occasionally misread a chat, answer something it
+    should have left, or phrase you badly. Nothing here is recoverable by an undo button —
+    a sent message is sent.</p>
+    <p style="margin-bottom:0">That is why the first week matters: leave it on the tight
+    settings, read every digest properly, and loosen it only where it has earned it. If a
+    chat should never be touched, say so — it will write that down too.</p>
+  </div>
+
+  <h3>Three things only you can do</h3>
+  <table>
+    <tr><td class="k">Pair it</td><td>Scanning the WhatsApp code needs your phone. ~20 seconds, once.</td></tr>
+    <tr><td class="k">Authorise calendar</td><td>Your Google account, in your browser. It cannot do that for you.</td></tr>
+    <tr><td class="k">Leave the machine on</td><td>No computer, no agent. It is not a phone app and never will be.</td></tr>
+  </table>
+
+  <div class="brandfoot">SHAMASH</div><div class="pagenum">6</div>
+</section>
+
+<!-- ============================================================= 7 · START -->
+<section class="page">
+  <div class="eyebrow">Now</div>
+  <h2>Try these five, in this order</h2>
+  <div class="rule"></div>
+
+  <p class="lead">Send them exactly as they are, in the chat you are reading this in. Each
+  one shows you a different half of the thing.</p>
+
+  <div class="phone">
+    <div class="bubble me">what's on my calendar today?</div>
+    <div class="bubble me">am I free Thursday morning?</div>
+    <div class="bubble me">catch me up on the busiest group I've ignored this week</div>
+    <div class="bubble me">remind me tomorrow at 9 to send the invoice</div>
+    <div class="bubble me">who wrote to me today and got no answer?</div>
+  </div>
+
+  <p>Then leave it alone until the next digest. That is the honest test — not what it does
+  when you are watching, but what it hands you when you were not.</p>
+
+  <div class="grid">
+    <div class="card"><span class="tag">If it goes quiet</span><h3>Check the machine</h3>
+      <p>Nine times in ten it is the computer asleep, or the bridge lost its link. Ask it
+      "are you alive?" — if nothing comes back, restart it.</p></div>
+    <div class="card"><span class="tag">If it gets it wrong</span><h3>Tell it, in the chat</h3>
+      <p>Plain words. "That was too long." "Don't answer her without me." It edits its own
+      brief and shows you what it changed.</p></div>
+  </div>
+
+  <div class="callout dark">
+    <p><strong>One last thing.</strong> Everything here runs on your machine, under your
+    account, with your files. Nobody else can see any of it — and equally, nobody else is
+    watching it for you. It is yours to run, and yours to check.</p>
+    <p style="margin-bottom:0">The candle lights the room. You still decide what happens
+    in it.</p>
+  </div>
+
+  <p class="muted" style="font-size:9pt;margin-top:8mm">Full details in the repository:
+  <code>README.md</code> to install, <code>RISKS.md</code> before you do,
+  <code>docs/ARCHITECTURE.md</code> if you want the wiring.</p>
+
+  <div class="brandfoot">SHAMASH</div><div class="pagenum">7</div>
+</section>
+
+</body>
+</html>

@@ -212,6 +212,26 @@ Then wait for their reply to come back through the watcher. Only a completed
 round trip counts as installed. If it doesn't arrive, run `doctor` and work
 the layer it points at.
 
+### Stage 9b — The welcome document
+
+Once the round trip works, the agent's **second** message is the welcome PDF:
+
+```
+python scripts\build_welcome.py          # regenerates docs\welcome\Welcome-to-Shamash.pdf
+```
+
+Send `docs/welcome/Welcome-to-Shamash.pdf` into the same chat, captioned:
+*"Everything you need to know about me, in five minutes. The last page has five
+things to try — start there."*
+
+This is deliberate: the first thing a new user gets is not a wall of terminal
+output, it is a document that tells them what they now have, what it will never
+do, and what to send it first. Do not skip it and do not paraphrase it into the
+chat instead — the PDF is the onboarding.
+
+If the build fails (no Edge, no `markdown` package), send
+`docs/welcome/welcome.html` instead and say it opens in a browser.
+
 ## Stage 10 — Hand over
 
 Run `scripts/doctor.cmd` and show the result. Then tell them, in plain words:

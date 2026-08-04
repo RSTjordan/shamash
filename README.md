@@ -14,6 +14,10 @@ answer somebody.
 It is not a cloud service. There is no server, no account, and nothing to sign
 up for. It runs on your computer, on your WhatsApp, and stops when you close it.
 
+📄 **[Welcome to Shamash (PDF)](docs/welcome/Welcome-to-Shamash.pdf)** — five
+minutes, illustrated: what it does, how it works, where it stops, and the first
+five things to send it. The installer hands you this as its first message.
+
 ---
 
 ## Read this first
@@ -72,6 +76,57 @@ stage, not the install.
 - **The agent as a real contact** (needs a second number, so it can send you
   alerts that actually ring)
 - **Your own scheduled jobs** — anything you can describe, on a cron.
+
+## How it works
+
+Four moving parts. Worth knowing, because when something breaks you'll know
+which box to look in.
+
+```
+   WhatsApp  ──▶  the bridge  ──▶   the agent    ──▶  its hands
+   your chats     a linked         Claude Code,       calendar · mail
+   your number    device on        reading your       your files
+                  your laptop      instruction files  a shell
+        ▲                                │
+        └──────── the answer, back ──────┤
+             into the same chat          │
+                                         ▼
+                        its memory — plain text files you can read
+                     how to behave · who people are · what it already did
+```
+
+1. **It sees.** The bridge is a linked device, like WhatsApp Web. Every message
+   lands in a SQLite file on your own disk — that file, not WhatsApp's API, is
+   what everything else reads.
+2. **It thinks.** A watcher notices new messages, builds a prompt out of them
+   plus your instruction files, and runs Claude Code on it. Voice notes are
+   transcribed locally first, if you enabled that.
+3. **It acts.** Calendar, mail, your files, a shell — bounded by the rules in
+   your brief, and every action is appended to a log keyed by message ID, so the
+   same message can never be acted on twice.
+4. **It reports.** The answer goes back into the same chat, and nothing counts
+   as sent until the row is confirmed in the bridge's database. HTTP 200 is not
+   delivery.
+
+### Its mind is a folder of text files
+
+No training, no profile of you on a server. Everything it knows about how to be
+you is Markdown you can open:
+
+| File | What it holds | Who writes it |
+|---|---|---|
+| `brief/AGENT_BRIEF.md` | The constitution — tone, what it may do alone, what it must never touch, how the digest is written. Injected whole into **every** run. | You, then it |
+| `brief/PEOPLE.md` | Who's who: the nickname in your phone, the real name, how you talk to them. Tell it once and it writes the row itself. | It, from you |
+| `prompts/*.md` | What each kind of run is *for* — the scan, an on-demand command, any job you add. | The kit |
+| `.claude/skills/` | A procedure worth reusing. "Summarise a group like this" — saved once, followed forever. | It, on request |
+| `state/` | The log, the timestamps, the schedule. Machine-written; it's how runs stay consistent with each other. | It |
+
+The split matters for updates: the **kit** files (prompts, scripts, skills) are
+ours and get replaced on `update`. **Your** files (brief, people, config, state)
+are yours and are never touched. That's why a `git pull` can't overwrite your
+assistant's personality.
+
+Full wiring in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## The part that makes it useful
 
