@@ -21,6 +21,8 @@ logs/
 whisper-env/
 jobs/
 *.log
+OPEN-WORK.md
+install/install.log
 
 # Local machine / editor noise
 .claude/settings.local.json

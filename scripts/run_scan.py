@@ -56,7 +56,11 @@ def main():
     now = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
     prompt = f"Local date/time now: {now} (ISO, local timezone).\n\n{prompt}"
 
-    cmd = [claude, "-p", "--allowedTools", cfg["allowed_tools"]]
+    cmd = [
+        claude, "-p",
+        "--model", cfg.get("model", "claude-opus-5"),  # same cost knob as the watcher
+        "--allowedTools", cfg["allowed_tools"],
+    ]
     print(f"[run_scan] {now} starting scan", flush=True)
     try:
         # stdout/stderr are inherited on purpose: run-scan.cmd appends them to

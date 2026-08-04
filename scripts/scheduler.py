@@ -29,6 +29,7 @@ run may still fire, so a laptop that was asleep at 10:00 still runs at 11:20.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timedelta
@@ -161,7 +162,11 @@ def main() -> int:
 
     if fired:
         STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        # Atomic: a tick killed mid-write must not leave half a JSON file that
+        # makes every later tick re-fire everything.
+        tmp = STATE_FILE.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        os.replace(tmp, STATE_FILE)
 
     return 0
 

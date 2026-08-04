@@ -8,6 +8,7 @@ candidate.
 Usage: whisper-env\\Scripts\\python.exe scripts\\transcribe.py <audio-file>
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -25,6 +26,9 @@ CFG = config.load()
 MODELS_DIR = str(Path(CFG["root"]) / "whisper-env" / "models")
 _PRIMARY = CFG["features"].get("voice_model") or "ivrit-ai/whisper-large-v3-turbo-ct2"
 CANDIDATES = tuple(dict.fromkeys((_PRIMARY, "large-v3-turbo")))
+# Most of the machine, not all of it — transcription must not starve whatever
+# else is running.
+CPU_THREADS = max(4, (os.cpu_count() or 4) - 2)
 
 
 def main() -> int:
@@ -39,7 +43,7 @@ def main() -> int:
                 device="cpu",
                 compute_type="int8",
                 download_root=MODELS_DIR,
-                cpu_threads=12,
+                cpu_threads=CPU_THREADS,
             )
             segments, _info = model.transcribe(audio, vad_filter=True)
             text = " ".join(s.text.strip() for s in segments).strip()

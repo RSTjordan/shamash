@@ -13,6 +13,9 @@
 
   "claude_exe": "",
 
+  "_model": "the cost knob: which Claude model runs everything (opus = best and most expensive)",
+  "model": "claude-opus-5",
+
   "channels": {
     "main": {
       "enabled": true,
@@ -27,12 +30,13 @@
 
   "features": {
     "voice_notes": false,
-    "_voice_model": "optional: a faster-whisper model id for voice transcription; default is ivrit-ai/whisper-large-v3-turbo-ct2 (Hebrew-tuned, also fine for English)",
+    "voice_model": "",
     "approvals": true
   },
 
   "permission_mode": "manual",
-  "allowed_tools": "Bash,PowerShell,Read,Write,Edit,Glob,Grep",
+  "_allowed_tools": "tools that run with NO approval card. Read-only default keeps RISKS.md's promise; adding Bash/PowerShell/Write/Edit gives the agent your machine without asking",
+  "allowed_tools": "Read,Glob,Grep",
 
   "schedule": {
     "scan_times": ["08:00", "20:00"]

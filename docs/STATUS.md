@@ -29,10 +29,24 @@ Last updated: 2026-08-05 (assembly night, complete).
 - `prompts/`: generic scan.md, command.md, command-followup.md, job-shift.md —
   rendered from config at runtime, verified to leave no unfilled tokens.
 
+## Reviewed
+
+Two independent adversarial reviewers (correctness/security + new-user
+experience) went over the assembled kit on 2026-08-05. They found 4 criticals
+(missing MCP wiring stage, a default tool list that contradicted RISKS.md, a
+stale JOBS.md whose format would kill the scheduler, frame-patch ordering
+that could loop the agent on itself) and ~20 majors/minors. All criticals and
+majors were fixed the same night; the honest leftovers are below.
+
 ## Not done — the honest list before anyone installs this
 
 1. **Never installed end-to-end on a clean machine.** Everything was proven
    on ONE machine (the author's), inside the personal installation the kit
    was extracted from. The first stranger's install will find things.
-2. No git remote yet — the repo goes public only after a clean review pass
-   and the author's final scrub sign-off.
+2. The welcome PDF and approval-card *flow* exist in English only; RISKS and
+   the README are bilingual.
+3. Known small gaps, accepted for v0: the whisper daemon port (8090) is not
+   configurable; `effort` applies to the resident agent only; notify's
+   card-verification match is first-60-chars (a resent identical card can
+   mis-verify); no automated re-apply of bridge patches after `update`.
+4. No git remote yet — the repo goes public on the author's final sign-off.

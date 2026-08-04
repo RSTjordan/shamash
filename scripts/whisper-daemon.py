@@ -15,6 +15,7 @@ Only files inside the active bridge stores are accepted (voice notes land in
 
 import json
 import logging
+import os
 import sys
 import threading
 import time
@@ -37,6 +38,9 @@ HOST, PORT = "127.0.0.1", 8090
 MODELS_DIR = str(Path(CFG["root"]) / "whisper-env" / "models")
 _PRIMARY = CFG["features"].get("voice_model") or "ivrit-ai/whisper-large-v3-turbo-ct2"
 CANDIDATES = tuple(dict.fromkeys((_PRIMARY, "large-v3-turbo")))
+# Most of the machine, not all of it — transcription must not starve whatever
+# else is running.
+CPU_THREADS = max(4, (os.cpu_count() or 4) - 2)
 
 LOG_DIR = Path(CFG["paths"]["logs"])
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -73,7 +77,7 @@ def load_model() -> bool:
                     device="cpu",
                     compute_type="int8",
                     download_root=MODELS_DIR,
-                    cpu_threads=12,
+                    cpu_threads=CPU_THREADS,
                     local_files_only=local_only,
                 )
                 _model, _model_id = model, model_id

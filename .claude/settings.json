@@ -1,0 +1,10 @@
+{
+  "_comment": "Kit-shipped permissions: the WhatsApp MCP tools and the claude.ai Calendar/Gmail connectors are pre-approved so headless runs (scans, commands, shifts) can use them without a human at the terminal. Shell/write tools are deliberately NOT here - they go through allowed_tools in config.json and the approval cards. Applies only after the user accepts the project trust dialog (runbook stage 4b). Personal rule additions land in settings.local.json, never in this file.",
+  "permissions": {
+    "allow": [
+      "mcp__whatsapp",
+      "mcp__claude_ai_Google_Calendar",
+      "mcp__claude_ai_Gmail"
+    ]
+  }
+}

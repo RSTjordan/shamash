@@ -50,7 +50,9 @@ disk, it is included here in full):
      - `state/actions.jsonl` (tail) — what past runs actually did;
      - if you still can't place the topic, read further back in the chat
        straight from the bridge DB
-       (`{{PROJECT_ROOT}}\bridge\whatsapp-bridge\store\messages.db`,
+       (the channel's own store — main:
+       `{{PROJECT_ROOT}}\bridge\whatsapp-bridge\store\messages.db`, contact:
+       `{{PROJECT_ROOT}}\bridge\contact-bridge\store\messages.db`,
        table `messages`).
    Answer from those files, never from what this prompt happens to include.
    Not knowing is a failure to look, not a missing memory.
@@ -71,7 +73,7 @@ disk, it is included here in full):
      `shifts.log`, never from memory.
    - Pause/resume/reprioritize/steer → edit the job's frontmatter or Next
      steps; takes effect next shift. To kick a shift right now:
-     `python scripts/job-runner.py --job <slug>` (runs up to an hour —
+     `py -3 scripts/job-runner.py --job <slug>` (runs up to an hour —
      launch it detached, don't block this turn on it).
    - A job blocked on {{OWNER_NAME}} stays `status: blocked` until they
      answer — never silently un-block one.
@@ -118,7 +120,7 @@ disk, it is included here in full):
    command text or its first line> to send_message — on both the ack and the
    final reply. The system adds the {{AGENT_NAME}} header automatically.
 4b. SENDING FILES: use
-     `python scripts/notify.py --send-file <path> "<caption>"`
+     `py -3 scripts/notify.py --send-file <path> "<caption>"`
    It stages the file into the outbox itself, sends it to whichever channel
    the owner actually reads (the agent contact chat first if one is
    configured, the group as the fallback), and confirms the row landed in that

@@ -22,11 +22,12 @@ owner to answer it, and turns the answer into a decision.
 
 Answering is one tap: a REACTION on the card (the bridge stores inbound
 reactions as media_type="reaction" rows whose quoted_message_id points back at
-it), so 👍 approves without opening a keyboard. Typing 1 / תמיד / 0 works too.
+it), so 👍 approves without opening a keyboard. Typing 1 / always / 0 works
+too (English and Hebrew keywords are both accepted).
 
-  👍 ✅ 👌 🆗 / "1" "כן" "אשר" "ok"      -> allow, this once
-  ❤️ 💯 ♾️ / "2" "תמיד" "always"          -> allow + persist the suggested rule
-  👎 ❌ 🚫 / "0" "לא" "דחה" "עצור"        -> deny, with a reason for the agent
+  👍 ✅ 👌 🆗 / "1" "yes" "ok" "כן"       -> allow, this once (persists nothing)
+  ❤️ 💯 ♾️ / "2" "always" "תמיד"          -> allow + persist the suggested rule
+  👎 ❌ 🚫 / "0" "no" "deny" "לא"         -> deny, with a reason for the agent
 
 No answer inside APPROVAL_TIMEOUT is a deny, never a hang: an unattended
 scheduled run must degrade to "kept working without it and said so", not sit
@@ -40,6 +41,7 @@ import logging
 import pathlib
 import sqlite3
 import sys
+import threading
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -57,7 +59,7 @@ POLL = 2.0
 
 ONCE = {"1", "כן", "אשר", "אשרתי", "אישור", "ok", "okay", "yes", "y", "go", "כן."}
 ALWAYS = {"2", "תמיד", "אשר תמיד", "always", "always allow", "מעכשיו", "כן תמיד"}
-DENY = {"0", "לא", "לא!", "דחה", "עצור", "no", "n", "stop", "nope", "אל"}
+DENY = {"0", "לא", "לא!", "דחה", "עצור", "no", "n", "deny", "stop", "nope", "אל"}
 
 REACT_ONCE = {"👍", "✅", "👌", "🆗", "🙏", "💪"}
 REACT_ALWAYS = {"❤️", "❤", "💯", "♾️", "🔁"}
@@ -67,6 +69,35 @@ REACT_DENY = {"👎", "❌", "🚫", "✋", "🛑"}
 # asked again a second time in the same process just because the persisted
 # rule only takes effect on the next tool call.
 _MEMO: dict[str, dict] = {}
+
+# Shared state the watcher reads (this module runs in-process, imported by
+# watcher.py). While a card is open on a channel, the owner's next message
+# there is almost certainly its answer — the watcher's wait-tick must not
+# steer or ack it out from under the poll loop below. And a row that WAS
+# consumed as an answer must never surface again as a command afterwards.
+# Cards are asked on side threads, hence the lock and the per-channel count.
+CONSUMED_IDS: set[str] = set()
+_OPEN_CARDS: dict[str, int] = {}
+_OPEN_LOCK = threading.Lock()
+
+
+def channel_has_open_card(name: str) -> bool:
+    with _OPEN_LOCK:
+        return _OPEN_CARDS.get(name, 0) > 0
+
+
+def _card_opened(name: str) -> None:
+    with _OPEN_LOCK:
+        _OPEN_CARDS[name] = _OPEN_CARDS.get(name, 0) + 1
+
+
+def _card_closed(name: str) -> None:
+    with _OPEN_LOCK:
+        left = _OPEN_CARDS.get(name, 0) - 1
+        if left > 0:
+            _OPEN_CARDS[name] = left
+        else:
+            _OPEN_CARDS.pop(name, None)
 
 
 def _log(record: dict) -> None:
@@ -105,26 +136,26 @@ def _rule_labels(suggestions: list) -> list[str]:
 def card(request: dict, context: str = "") -> str:
     tool = request.get("tool_name", "?")
     what = _summarize(tool, request.get("input") or {})
-    reason = (request.get("decision_reason") or "דורש אישור").strip()
+    reason = (request.get("decision_reason") or "approval required").strip()
     rules = _rule_labels(request.get("permission_suggestions"))
     lines = [
-        "🔒 *פעולה נחסמה — צריך אישור שלך*",
+        "🔒 *Action blocked — needs your approval*",
         "",
         f"*{tool}:* {what}",
         f"_{reason}_",
     ]
     if context:
-        lines.append(f"בשביל: {context}")
+        lines.append(f"For: {context}")
     lines += [
         "",
-        "👍 = אשר פעם אחת",
+        "👍 = allow this once",
     ]
     if rules:
-        lines.append(f"❤️ = אשר תמיד ({', '.join(rules[:2])})")
+        lines.append(f"❤️ = always — saves a permanent rule ({', '.join(rules[:2])})")
     lines += [
-        "👎 = דחה",
+        "👎 = deny",
         "",
-        "_(אפשר גם להשיב 1 / תמיד / 0)_",
+        "_(replying 1 / always / 0 works too)_",
     ]
     return "\n".join(lines)
 
@@ -267,6 +298,7 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT) -> 
         }
     channel = next(c for c in notify.CHANNELS if c["name"] == delivered["channel"])
     card_id = delivered["id"]
+    _card_opened(channel["name"])
     started = time.time()
     # A second of slack: the card's own row must not be re-read as an answer,
     # but the owner's reply can land in the same DB second.
@@ -274,19 +306,25 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT) -> 
 
     verdict = None
     consumed: list[str] = []
-    while time.time() - started < timeout:
-        time.sleep(POLL)
-        for mid, body, is_reaction in _rows_after(channel, since, card_id):
-            if mid == card_id or mid in consumed:
-                continue
-            call = _classify(body, is_reaction)
-            if call is None:
-                continue  # unrelated message — leave it to be a normal command
-            consumed.append(mid)
-            verdict = call
-            break
-        if verdict:
-            break
+    try:
+        while time.time() - started < timeout:
+            time.sleep(POLL)
+            for mid, body, is_reaction in _rows_after(channel, since, card_id):
+                if mid == card_id or mid in consumed:
+                    continue
+                call = _classify(body, is_reaction)
+                if call is None:
+                    continue  # unrelated message — leave it to be a normal command
+                consumed.append(mid)
+                if len(CONSUMED_IDS) > 500:
+                    CONSUMED_IDS.clear()
+                CONSUMED_IDS.add(mid)
+                verdict = call
+                break
+            if verdict:
+                break
+    finally:
+        _card_closed(channel["name"])
 
     if verdict == "always":
         inner = {"behavior": "allow", "updatedInput": request.get("input") or {}}
@@ -322,9 +360,10 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT) -> 
 # Rule-based blocks arrive as can_use_tool and can simply be answered. The
 # classifier is different — it denies inside the tool result, after the fact,
 # and nothing is waiting for an answer. Those denials get the same card: the
-# watcher spots the denial in the tool result, asks, and on approval writes
-# the rule into .claude/settings.local.json itself (a plain file write from
-# the watcher process — no classifier stands between python and a JSON file).
+# watcher spots the denial in the tool result, asks, and on an "always" answer
+# writes the rule into .claude/settings.local.json itself (a plain file write
+# from the watcher process — no classifier stands between python and a JSON
+# file). A "once" approves the single retry and persists nothing.
 # ---------------------------------------------------------------------------
 CLASSIFIER_MARKERS = (
     "denied by the Claude Code auto mode classifier",
@@ -402,13 +441,15 @@ def add_local_rule(rule: dict) -> bool:
 
 def ask_after_denial(tool: str, tool_input: dict, context: str = "",
                      timeout: float = APPROVAL_TIMEOUT) -> dict:
-    """Card for a classifier denial. Approval writes the rule and asks for a
-    retry; the rule also survives into every future run."""
+    """Card for a classifier denial. Any approval asks for a retry; only an
+    "always" answer writes the rule, so it survives into future runs. A
+    "once" (or a memo of an earlier answer) approves the retry and persists
+    nothing — that is what the card's legend promises."""
     rule = derive_rule(tool, tool_input)
     request = {
         "tool_name": tool,
         "input": tool_input,
-        "decision_reason": "נחסם ע\"י מסווג ההרשאות האוטומטי",
+        "decision_reason": "Blocked by the automatic permission classifier",
         "permission_suggestions": (
             [{"type": "addRules", "rules": [rule], "behavior": "allow",
               "destination": "localSettings"}] if rule else []
@@ -416,7 +457,7 @@ def ask_after_denial(tool: str, tool_input: dict, context: str = "",
     }
     outcome = ask(request, context=context, timeout=timeout)
     verdict = outcome["verdict"]
-    if verdict in ("once", "always", "memo") and rule:
+    if verdict == "always" and rule:
         add_local_rule(rule)
     outcome["retry"] = verdict in ("once", "always", "memo")
     return outcome

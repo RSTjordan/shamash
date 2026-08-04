@@ -12,6 +12,9 @@ echo.
 echo It deletes NO files: your message history, config and brief stay on disk
 echo until you remove them yourself (instructions at the end).
 echo.
+echo Close any other terminal or editor open inside this folder first - the
+echo sweep stops processes whose command line points into this repo.
+echo.
 set "CONFIRM="
 set /p CONFIRM=Type yes to continue:
 if /i not "%CONFIRM%"=="yes" (

@@ -1,67 +1,73 @@
-# Jobs — recurring work beyond the digest
+# Jobs and schedules — how work happens when you're not talking to it
 
-A **job** is anything you want to happen on a schedule that isn't the twice-daily
-scan: a report on a business, a watcher for a price, a Friday summary of a group.
+Two different machines, often confused. Get the distinction and everything
+else follows:
 
-The rule: **jobs are opt-in, and they never enter the kit.** The kit ships the
-machinery and one example. What you actually run is yours, lives in the
-gitignored `jobs/` directory, and is nobody else's business — literally.
+- **The schedule** (`state/schedule.json`) fires *commands* at times — the
+  scans, the job-runner tick, anything else. It knows nothing about content.
+- **A job** (`jobs/<slug>/`) is a *long-running project* with its own state,
+  advanced in bounded work-shifts by the job-runner. It knows nothing about
+  time — the schedule fires the runner, the runner picks the job.
 
-## Why not Windows scheduled tasks per job
+Both live in gitignored directories: what you run is yours and never enters
+the kit.
 
-Because then every new job means registering a task, which means an admin
-prompt, a `.cmd` wrapper and a `.vbs` to hide the console window — three files
-and a UAC dialog to answer a question like "remind me about X on Fridays".
+## The schedule — `state/schedule.json`
 
-So there is **one** scheduled task, a small always-on scheduler, and jobs are
-rows in a JSON file. Adding a job becomes editing a file — or just asking your
-assistant to add it, which is the point.
-
-## Anatomy of a job
-
-```
-jobs/
-  weekly-report.md          ← the prompt: what to do, in plain language
-state/schedule.json         ← when to run it
-```
+A top-level **JSON list** (not an object — the scheduler refuses anything
+else, loudly in `logs/scheduler.log`, and then runs NOTHING, so treat this
+file with respect). Each entry:
 
 ```json
-{
-  "jobs": [
-    {
-      "name": "weekly-report",
-      "prompt": "jobs/weekly-report.md",
-      "cron": "0 17 * * 5",
-      "enabled": true
-    }
-  ]
-}
+[
+  {"name": "morning-scan", "command": "C:\\path\\to\\scripts\\run-scan.cmd",
+   "at": "08:00", "every_days": 1, "enabled": true},
+  {"name": "job-runner", "command": "C:\\path\\to\\scripts\\run-job-runner.cmd",
+   "every_minutes": 30, "enabled": true}
+]
 ```
 
-The prompt is an ordinary instruction file — the same kind of thing you'd type
-into the chat, written down once. It has the same tools and the same brief as
-any other run.
+Exactly one cadence per entry: `at` (+ optional `every_days` and `anchor`
+date for every-N-days runs) · `every_minutes` · `at_datetime` (one shot,
+then it disables itself). Optional `catch_up_minutes` (default 1440) lets a
+run missed while the machine slept still fire late. There is **no cron
+syntax**. The `command` runs via `cmd /c` from the repo root. Run state
+lives in `state/schedule-state.json`; the tick itself is the
+`ShamashScheduler` Windows task, every 5 minutes.
 
-## Rules a job must follow
+Rules for anything you schedule: be idempotent (a run may fire twice after a
+catch-up — key your actions in `state/actions.jsonl` and check before
+acting); say nothing when there is nothing to say; reach the owner only
+through `scripts/notify.py`; never assume the contact channel exists.
 
-1. **Reach the user through `scripts/notify.py`.** Never hand-roll a bridge
-   POST, and never treat HTTP 200 as delivered — a send counts only once the
-   message shows up in that bridge's database. This is not pedantry: a watcher
-   that ignored it once announced something at 00:35 into a channel nobody was
-   reading, and it went unseen for seven hours.
-2. **Be idempotent.** A job may run twice — after a reboot, after a catch-up.
-   Log what you did to `state/actions.jsonl` with a stable key and check it
-   before acting.
-3. **Say nothing when there is nothing to say.** A job that reports "no change"
-   every hour trains its reader to ignore it, and then it fails to be read on
-   the day it matters.
-4. **Never assume the contact channel exists.** Many installations run without
-   a second number.
+## A job — `jobs/<slug>/`
 
-## Adding one
+Created by asking your assistant to take on something multi-day ("take the
+ball on X"). It writes two files:
 
-Ask your assistant: *"every Friday at 5, summarise what happened in the work
-group this week and send it to me."* It writes the prompt file, adds the
-schedule row, and tells you what it created. No task registration, no restart.
+- **`JOB.md`** — frontmatter (`status: active|paused|blocked|done`,
+  `priority` (1 = first), `target` (the repo/folder the work happens in),
+  `max_shift_minutes`, `min_gap_hours`, optional `window` like
+  `08:00-23:00`) and then the goal, definition of done, and constraints.
+- **`STATUS.md`** — the handoff document. Every shift reads it first and
+  rewrites it last: Shift summary (what you get sent), Done so far, Next
+  steps, Blockers.
 
-Or write the two files yourself. The scheduler picks up changes on its own.
+Every 30 minutes the runner picks the single highest-priority runnable job
+and runs ONE bounded work-shift on it. The runner — never the shift itself —
+sends you a WhatsApp message with each shift's summary. A shift that fails
+tells you; two failures in a row and the job sets itself to `blocked` and
+tells you that too. `shifts.log` in the job folder is the history.
+
+Steering costs one sentence in the chat: "pause the X job", "make Y the
+priority", "what's happening with Z" — the agent edits the job files or
+reads STATUS.md and answers. To force a shift right now:
+`py -3 scripts\job-runner.py --job <slug>`.
+
+## What this costs
+
+A shift is a full Claude session (the model set by `"model"` in
+`config.json`) for up to `max_shift_minutes`. An always-active job at the
+default 45-minute shifts and 3-hour gaps can spend several model-hours a
+day. The digest reports every job's state — nothing burns silently — but
+set `min_gap_hours` with your plan in mind, and `paused` is always free.

@@ -231,6 +231,49 @@ def check_tasks(cfg):
             print("    " + " | ".join(v.strip() for v in row.values() if v))
 
 
+# ------------------------------------------------------------------- schedule
+def check_schedule():
+    """state/schedule.json drives ALL recurring work (scans, job shifts — see
+    scheduler.py). A broken file doesn't crash anything; it silently stops
+    every scheduled run, which is why this check is loud."""
+    section("schedule")
+    path = config.ROOT / "state" / "schedule.json"
+    if not path.exists():
+        print(f"  SCHEDULE BROKEN: {path} does not exist — no scheduled work will run")
+        return
+    try:
+        jobs = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"  SCHEDULE BROKEN: schedule.json is unreadable/invalid JSON — {exc}")
+        return
+    if not isinstance(jobs, list):
+        print("  SCHEDULE BROKEN: top level must be a LIST of job objects")
+        return
+    problems = []
+    for i, job in enumerate(jobs):
+        label = f"entry #{i + 1}"
+        if not isinstance(job, dict):
+            problems.append(f"{label} is not an object")
+            continue
+        if job.get("name"):
+            label = f"job {job['name']!r}"
+        else:
+            problems.append(f"{label} has no name")
+        if not job.get("command"):
+            problems.append(f"{label} has no command")
+        cadence = [k for k in ("at", "every_minutes", "at_datetime") if k in job]
+        if len(cadence) != 1:
+            problems.append(
+                f"{label} needs exactly one of at/every_minutes/at_datetime "
+                f"(has: {', '.join(cadence) or 'none'})"
+            )
+    if problems:
+        for p in problems:
+            print(f"  SCHEDULE BROKEN: {p}")
+    else:
+        line("schedule.json", f"{len(jobs)} job(s), all well-formed")
+
+
 # -------------------------------------------------------------------- whisper
 def check_whisper(cfg):
     if not (cfg and cfg["features"].get("voice_notes")):
@@ -258,6 +301,16 @@ def check_system():
     warn = "  <-- LOW, things will start failing" if free_gb < 2 else ""
     line("disk free", f"{free_gb:.1f} GB of {usage.total / 2**30:.1f} GB{warn}")
     line("repo", str(config.ROOT))
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, errors="replace",
+            timeout=10, cwd=str(config.ROOT),
+        )
+        commit = (proc.stdout or "").strip() if proc.returncode == 0 else ""
+    except (OSError, subprocess.TimeoutExpired):
+        commit = ""
+    line("kit commit", commit or "unknown")
 
 
 def main():
@@ -272,6 +325,7 @@ def main():
     check_bridges(cfg)
     check_databases(cfg)
     check_tasks(cfg)
+    check_schedule()
     check_whisper(cfg)
     print()
     print("=== end of report — if you're asking for help, "

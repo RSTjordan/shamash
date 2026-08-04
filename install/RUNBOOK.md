@@ -30,7 +30,7 @@ Check and print a go/no-go table. Do not continue past a NO-GO.
 | Check | How | If it fails |
 |---|---|---|
 | Windows 10/11 | `[System.Environment]::OSVersion` | NO-GO — Windows only for now |
-| Claude Code present + signed in | `claude --version` | NO-GO — they must install and sign in first |
+| Claude Code present + signed in | `claude --version` (needs ≥ 2.1), then a real headless probe: `claude -p "reply with exactly: ok"` — version alone passes on a signed-OUT machine | NO-GO — they must install and sign in first |
 | Plan | Ask: Max, Pro, or unsure | Pro → warn clearly it will hit limits; let them decide |
 | Disk | ≥ 5 GB free (≥ 10 GB if they want voice notes) | Warn |
 | Ports 8080, 8081, 8090 free | `Get-NetTCPConnection -LocalPort` | Note which are taken; write different `bridge_port` values into `config.json` at stage 6 — the launchers read ports from config |
@@ -39,7 +39,8 @@ Check and print a go/no-go table. Do not continue past a NO-GO.
 
 ## Stage 1 — The risk gate
 
-Show them `RISKS.md`. Not a summary — the file.
+Show them `RISKS.md` — or `RISKS.he.md` if their language is Hebrew. Not a
+summary — the file.
 
 Then ask them to type `yes`. Anything else, stop and delete nothing; they can
 come back. **Do not soften this stage and do not accept a 👍.** They are about
@@ -121,28 +122,63 @@ Install only what's missing, and only what stage 2 asked for. Use `winget`.
 
 ## Stage 4 — Build the bridge
 
-1. Clone `https://github.com/verygoodplugins/whatsapp-mcp` into `bridge/`.
-2. Apply the changes described in `patches/`. Each patch is a Markdown
-   document describing the change, not a `.patch` diff — upstream's layout
-   drifts, and a described change survives drift better than line numbers.
-   `patches/README.md` gives the order and says which are required.
+1. Clone `https://github.com/verygoodplugins/whatsapp-mcp` into `bridge/`,
+   then **pin it to the proven commit**:
+   `git -C bridge checkout 7830b860be3306e4e9158d014f9862c78e0cc5fb`
+   — the entire REST contract the kit depends on (`/api/health`'s `connected`,
+   `/api/send`'s `quoted_*`, `.bridge-token` auth, `WHATSAPP_BRIDGE_PORT`,
+   `allowedMediaRoots`) was verified against exactly this commit. Only move
+   the pin deliberately, with a full re-test.
+2. Apply **only `patches/bridge-log-level.md`** now. The frame patch needs
+   values from `config.json`, which doesn't exist until stage 6 — it is
+   applied in stage 6c, and applying it now with guessed values causes the
+   worst failure this kit has (see stage 6c).
 3. Build. If the build fails on CGO, go back to gcc in stage 3 — that is nearly
    always the cause.
-4. Start it and confirm it responds before continuing.
+4. Start it and confirm `/api/health` answers before continuing.
+
+## Stage 4b — Wire the MCP server into Claude Code
+
+The agent's WhatsApp *tools* (list_messages, send_message, download_media)
+come from the Python MCP server in `bridge/whatsapp-mcp-server` — without this
+stage the agent can read nothing and reply to nothing, and the failure is
+silent. Three steps, all mandatory:
+
+1. Install its dependencies: `cd bridge\whatsapp-mcp-server` and `uv sync`.
+2. Register it at USER scope, so headless runs get it without per-project
+   approval prompts:
+
+       claude mcp add whatsapp --scope user -- uv --directory <ABSOLUTE-REPO-PATH>\bridge\whatsapp-mcp-server run main.py
+
+3. Trust + allow: the kit ships `.claude/settings.json` allowing the
+   `mcp__whatsapp__*` tools in headless runs — but project settings only
+   apply after the human accepts the trust dialog. Have them open `claude`
+   interactively in the repo folder once and accept it.
+
+**Verify headlessly before moving on** — this is the check that would have
+caught the worst assembly bug this kit ever had:
+
+    claude -p "Use the whatsapp list_chats tool and reply with only the number of chats it returned."
+
+A number = wired. A "tool not found" = stop and fix; nothing downstream works.
 
 ## Stage 5 — Pair WhatsApp
 
 **One of the three moments they have to physically act.**
 
-Start the bridge, render the QR to a local page, open their browser, and tell
-them: *"Open WhatsApp on your phone → Settings → Linked devices → Link a
-device, and scan this."*
+Run the bridge in a VISIBLE console for this stage (not the hidden task), with
+`set BRIDGE_VERBOSE=1` — the quiet log patch hides the QR event otherwise. The
+bridge renders the QR right in the terminal. Tell them: *"Open WhatsApp on
+your phone → Settings → Linked devices → Link a device, and scan this."*
 
 Then **verify** — don't trust the log line. Poll `messages.db` until synced
-messages appear. Zero messages after 60 seconds means it didn't pair; re-render
-the QR (they expire) and have them try again.
+messages appear. Zero messages after 60 seconds means it didn't pair; QR codes
+expire — let it print a fresh one and have them try again. When paired, close
+the console; from stage 8 the hidden task owns the bridge.
 
-Tell them the pairing needs re-scanning about every 20 days.
+Tell them the pairing needs re-scanning about every 20 days, and that the
+procedure for that day is written down in `docs/RE-PAIRING.md` — it's the one
+piece of routine maintenance this product has.
 
 ## Stage 6 — The interview
 
@@ -177,6 +213,12 @@ Write `config.json` and `brief/AGENT_BRIEF.md` from
 Then **play it all back** — what they chose and what it implies — and get a
 confirmation before writing a single file.
 
+Also seed the working files the prompts rely on: create `OPEN-WORK.md` at the
+repo root (the cross-session work ledger — just its header and an empty
+"Open" section) and an empty `brief/PEOPLE.md` if the interview didn't
+already fill it. Both are listed in `.gitignore`; they hold the owner's data
+and must never be committed.
+
 ## Stage 6b — The dedicated number
 
 Only if stage 2 said yes. In order:
@@ -187,8 +229,33 @@ Only if stage 2 said yes. In order:
 3. **Set a two-step PIN.** Not optional. Without it, anyone who gets an SMS to
    that number can take the registration — and that account can message their
    contacts as their assistant.
-4. Pair the second bridge instance (its own port, own store, own token) as a
-   linked device, same QR flow as stage 5.
+4. Build the second bridge's directory — this layout is a contract, not a
+   suggestion (`start-contact-bridge.cmd` and `config.py` both assume it):
+
+       mkdir bridge\contact-bridge
+       copy bridge\whatsapp-bridge\whatsapp-bridge.exe bridge\contact-bridge\
+
+   The store directory (`bridge\contact-bridge\store\`, with its own
+   `messages.db` and `.bridge-token`) is created by the exe on first run;
+   the launcher gives it its own port via `WHATSAPP_BRIDGE_PORT`.
+5. Pair it as a linked device of the NEW WhatsApp Business account — same
+   visible-console QR flow as stage 5, run through
+   `scripts\start-contact-bridge.cmd` with `BRIDGE_VERBOSE=1`.
+6. Set `channels.contact.enabled` to `true` in `config.json`.
+
+## Stage 6c — The frame patch (main channel; needs config.json)
+
+Now — and only now — apply `patches/frame-agent-messages.md`, writing the
+agent's name, the group JID from stage 6, and the owner's phone as literals
+into `bridge/whatsapp-mcp-server/whatsapp.py`.
+
+Why the ordering is sacred: on the main channel the agent's replies come FROM
+the owner's own account. The header this patch adds is the only thing telling
+the watcher "this row is mine, not a command". Applied wrong — or not at all —
+the agent reads its own replies as fresh commands and answers itself in a
+loop, at the owner's expense, until someone kills the task. After applying,
+verify: send a message through the MCP `send_message` tool and confirm the row
+in `messages.db` starts with the 🤖 header.
 
 ## Stage 7 — Connectors
 
@@ -301,13 +368,22 @@ leaves everything dead until they log in.
 
 ## Stage 9 — Smoke test, and it ends in WhatsApp
 
-**An exe that started is not a working system.**
+**An exe that started is not a working system.** Three tests, in this order —
+each proves a loop the previous one doesn't:
 
-Have their newly installed agent send them a real WhatsApp message: *"I'm
-alive. Reply 'test' and I'll know the whole loop works."*
+1. **The notify round trip.** Have their newly installed agent send them a
+   real WhatsApp message: *"I'm alive. Reply 'test' and I'll know the whole
+   loop works."* Wait for the reply to come back through the watcher.
+2. **The MCP reply path** — the loop the daily product actually uses. Have
+   them send a small real command ("what's the newest message in this chat?")
+   and confirm the agent's answer arrives *as a message in the chat* (on the
+   main channel that reply travels through the MCP `send_message` tool — the
+   piece stage 4b wired; this is its live test).
+3. **One forced scan.** Run `scripts\run-scan.cmd` once by hand and confirm a
+   digest lands in the agent chat. This is tomorrow morning's product; "the
+   watcher works" does not prove it.
 
-Then wait for their reply to come back through the watcher. Only a completed
-round trip counts as installed. If it doesn't arrive, run `scripts\doctor.cmd`
+Only all three counts as installed. If any fails, run `scripts\doctor.cmd`
 and work the layer it points at.
 
 ### Stage 9b — The welcome document
@@ -327,7 +403,7 @@ output, it is a document that tells them what they now have, what it will never
 do, and what to send it first. Do not skip it and do not paraphrase it into the
 chat instead — the PDF is the onboarding.
 
-If the build fails (no Edge, no `markdown` package), send
+If the build fails (it needs headless Edge or Chrome), send
 `docs/welcome/welcome.html` instead and say it opens in a browser.
 
 ### Stage 9c — Give it a face
@@ -381,7 +457,9 @@ Run `scripts/doctor.cmd` and show the result. Then tell them, in plain words:
 
 - Where their brief lives, and that editing it is how they change its behaviour.
 - That `scripts/update.cmd` updates it, and never touches their brief.
-- That the WhatsApp pairing needs re-scanning about every 20 days.
-- That `install/install.log` is what to send if they need help.
+- That the WhatsApp pairing needs re-scanning about every 20 days, and
+  `docs/RE-PAIRING.md` is the recipe for that day.
+- That `scripts\doctor.cmd` prints the report to paste into a GitHub issue if
+  they need help (attach `install/install.log` too for install problems).
 - Which optional features they said no to, and that adding one later is a
   single re-run of that stage.

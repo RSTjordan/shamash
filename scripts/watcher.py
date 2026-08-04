@@ -93,11 +93,11 @@ ALLOWED_TOOLS = cfg["allowed_tools"]
 # request — more control, more cards. One word, and it is a different trade.
 PERMISSION_MODE = cfg["permission_mode"]
 
-# The resident agent's model. Deliberately not a config key: the prompts and
-# the turn budgets below are tuned against this class of model — change it
-# here, on purpose, not per-install.
-MODEL = "claude-opus-5"
-EFFORT = "high"
+# The resident agent's model — the kit's cost knob (config.json "model" /
+# "effort"). The prompts and the turn budgets below are tuned against the
+# default flagship; picking a cheaper model is a real trade, made on purpose.
+MODEL = cfg.get("model", "claude-opus-5")
+EFFORT = cfg.get("effort", "high")
 
 # Voice-note transcription (features.voice_notes). Disabled by default: the
 # whisper environment is an optional install, and everything here degrades to
@@ -808,10 +808,15 @@ class AgentSession:
         finally:
             self._open_cards -= 1
         if outcome.get("retry"):
+            rule_note = (
+                " and the permission rule was written to "
+                ".claude/settings.local.json"
+                if outcome.get("verdict") == "always"
+                else " for this once (no standing rule was saved)"
+            )
             self.inject(
                 f"{OWNER_NAME} just approved the blocked {tool} action from "
-                f"WhatsApp and the permission rule was written to "
-                f".claude/settings.local.json. Try that exact action once more. "
+                f"WhatsApp{rule_note}. Try that exact action once more. "
                 f"If it is still refused, say so plainly and move on."
             )
 
@@ -1203,6 +1208,10 @@ def is_own_media_echo(content: str, media: str, filename: str, ts: str) -> bool:
 
 def _is_command(channel: str, row) -> bool:
     _id, _jid, ts, content, media, fname = row
+    if APPROVALS is not None and _id in APPROVALS.CONSUMED_IDS:
+        # This row already answered an approval card — the owner's "1" must
+        # never come back a second time as a command.
+        return False
     if not ((content or "").strip() or media):
         return False
     if media == "reaction":
@@ -1258,7 +1267,7 @@ language — any narration/preamble in it would be sent to them verbatim. Your
 standing instructions' "reply in the same chat via send_message" rule does
 NOT apply here. Sends to OTHER people/chats and all other tools work as usual
 (as {OWNER_NAME}). If you need to send {OWNER_NAME} a FILE, run
-`python scripts/notify.py --send-file <path> "<caption>"` — it delivers into
+`py -3 scripts\\notify.py --send-file <path> "<caption>"` — it delivers into
 THIS chat (the contact channel) and only falls back to the main channel if
 this bridge is down. Do not use the MCP send_file tool here: it sends from
 {OWNER_NAME}'s own account, so the file would land in a chat they are not
@@ -1407,6 +1416,12 @@ def main() -> None:
         def tick() -> None:
             steered_ids = {r[0] for r in steered}
             for c in CHANNELS:
+                if APPROVALS is not None and APPROVALS.channel_has_open_card(c):
+                    # An approval card is open on this channel — the owner's
+                    # next message there is almost certainly its answer.
+                    # Steering or acking it would race the card's own poll
+                    # loop, so leave the channel alone until the card closes.
+                    continue
                 arrivals = [
                     r for r in fetch_new(c, read_marker(c))
                     if r[0] not in processed and r[0] not in steered_ids

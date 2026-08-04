@@ -49,6 +49,7 @@ SHIFT_LOG_DIR = CFG["paths"]["logs"] / "jobs"
 LOCK_FILE = CFG["paths"]["state"] / "job-runner.lock"
 STATE_FILE = CFG["paths"]["state"] / "job-runner-state.json"
 CLAUDE = CFG["claude_exe"]
+MODEL = CFG.get("model", "claude-opus-5")  # the cost knob — same key the watcher reads
 
 DEFAULT_MAX_SHIFT_MINUTES = 45
 DEFAULT_MIN_GAP_HOURS = 3.0
@@ -126,7 +127,10 @@ def in_window(window: str, now: datetime) -> bool:
         log(f"ERROR bad window {window!r} — treating as always-open")
         return True
     minutes = now.hour * 60 + now.minute
-    return lo_h * 60 + lo_m <= minutes <= hi_h * 60 + hi_m
+    lo_min, hi_min = lo_h * 60 + lo_m, hi_h * 60 + hi_m
+    if lo_min > hi_min:  # overnight window ("22:00-06:00") — wraps midnight
+        return minutes >= lo_min or minutes <= hi_min
+    return lo_min <= minutes <= hi_min
 
 
 def read_state() -> dict:
@@ -150,7 +154,13 @@ def pick_job(now: datetime, state: dict, force: str | None = None) -> dict | Non
     for d in sorted(JOBS_DIR.iterdir()):
         if not d.is_dir():
             continue
-        job = parse_job(d)
+        try:
+            job = parse_job(d)
+        except Exception as exc:
+            # One malformed JOB.md (say, "priority: high") must cost one job,
+            # never the whole tick.
+            log(f"ERROR {d.name}/JOB.md is malformed ({exc}) — skipped")
+            continue
         if job is None:
             continue
         if force:
@@ -214,7 +224,7 @@ def run_shift(job: dict, now: datetime) -> tuple[str, str]:
         proc = subprocess.Popen(
             [
                 CLAUDE, "-p",
-                "--model", "claude-opus-5",
+                "--model", MODEL,
                 "--allowedTools", ALLOWED_TOOLS,
             ],
             cwd=job["target"] if Path(job["target"]).is_dir() else str(ROOT),
@@ -335,7 +345,12 @@ def main() -> int:
         entry["last_end"] = finished.isoformat(timespec="seconds")
 
         # Re-read the frontmatter — the shift may have set done/blocked itself.
-        current = parse_job(job["dir"])
+        # A shift that rewrote JOB.md badly must not crash the bookkeeping.
+        try:
+            current = parse_job(job["dir"])
+        except Exception as exc:
+            log(f"ERROR post-shift JOB.md re-read failed ({job['slug']}): {exc}")
+            current = None
         new_status = current["status"] if current else job["status"]
 
         if outcome == "ok" and summary:

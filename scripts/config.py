@@ -43,12 +43,17 @@ DEFAULTS = {
         "timezone": "UTC",
     },
     "claude_exe": "",
+    # The cost knob: the model (and effort) every agent run — watcher turns,
+    # job shifts, scheduled scans — is started with.
+    "model": "claude-opus-5",
+    "effort": "high",
     "channels": {
         "main": {"enabled": True, "group_jid": "", "bridge_port": 8080},
         "contact": {"enabled": False, "bridge_port": 8081},
     },
     "features": {
         "voice_notes": False,
+        "voice_model": "",  # empty = the voice scripts' built-in default
         "approvals": True,
     },
     # Public default is "manual": every tool call outside the allowlist comes
@@ -56,7 +61,12 @@ DEFAULTS = {
     # decision to the built-in safety classifier — faster, and a genuinely
     # different trade. See RISKS.md before changing it.
     "permission_mode": "manual",
-    "allowed_tools": "Bash,PowerShell,Read,Write,Edit,Glob,Grep",
+    # Read-only by default — RISKS.md promises that shell commands and file
+    # writes come back as approval cards, and this list is what makes that
+    # promise true. Every tool added here runs with NO card. The author runs
+    # "Bash,PowerShell,Read,Write,Edit,Glob,Grep" on his own machine; widen
+    # only knowing exactly which brake you removed.
+    "allowed_tools": "Read,Glob,Grep",
     "schedule": {"scan_times": ["08:00", "20:00"]},
 }
 

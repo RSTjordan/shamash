@@ -77,7 +77,7 @@ them along with everything else.
    - "Waiting on you" — chats whose last message is from the other side,
      older than ~24h, that look like they expect the owner's reply. Max 5,
      most important first, one line each.
-   - "Carried over" — carry-forward. TWO sources, both required:
+   - "Carried over" — carry-forward. TWO sources (use whichever exist):
      (a) `OPEN-WORK.md` ({{PROJECT_ROOT}} root) — the cross-session ledger of
      work started and not finished. Anything under "Open" that is blocked on
      the owner, and anything untouched for more than 48h, gets a line (mark
@@ -95,7 +95,7 @@ them along with everything else.
    hand-rolling a bridge POST:
 
      write the digest to state/tmp/digest.txt (UTF-8), then run
-     `python scripts/notify.py --file state\tmp\digest.txt`
+     `py -3 scripts/notify.py --file state\tmp\digest.txt`
 
    notify.py delivers to the agent contact chat first when one is configured —
    the channel that actually notifies the owner's phone — and falls back to

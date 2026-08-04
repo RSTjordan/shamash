@@ -35,17 +35,25 @@ it has a face in your chat list instead of a grey circle.
 
 ## Read this first
 
-This gives WhatsApp messages a route to a shell on your laptop, it can send
-messages as you with no undo, and it pairs an unofficial client to your
+This gives WhatsApp messages a route to code running on your laptop, it can
+send messages as you with no undo, and it pairs an unofficial client to your
 personal WhatsApp account. **[RISKS.md](RISKS.md) — read it before you
-install.** The installer will make you confirm it anyway.
+install** ([עברית](RISKS.he.md)). The installer will make you confirm it
+anyway.
+
+> **Status: early.** This kit was extracted from one heavily-used personal
+> installation and has not yet survived a stranger's machine. Early
+> installers are test pilots — [docs/STATUS.md](docs/STATUS.md) is the honest
+> ledger of what's proven and what isn't.
 
 ## What you need
 
 - **Windows** (10 or 11). Only Windows for now.
 - **Claude Code**, signed in — realistically on a **Max** plan.
 - A computer that stays on. This is not a phone app.
-- ~25 minutes, of which about 2 are you doing something.
+- ~40 minutes. Most of it is the agent working, but the interview about your
+  people, the QR scan, and the risk gate are genuinely yours — budget 15
+  minutes of attention, not 2.
 - **No second phone number.** It starts inside your own WhatsApp; the
   real-contact upgrade is optional, later, and explained when you're ready.
 
@@ -97,7 +105,8 @@ stage, not the install.
 - **Voice notes** (3.3 GB model download)
 - **The agent as a real contact** (needs a second number, so it can send you
   alerts that actually ring)
-- **Your own scheduled jobs** — anything you can describe, on a cron.
+- **Your own scheduled runs** — anything you can describe, on a schedule
+  ([docs/JOBS.md](docs/JOBS.md) — there is no cron syntax; it's simpler).
 
 ## How it works
 
@@ -172,8 +181,14 @@ reads it on every run, and updates never overwrite it.
 scripts\update.cmd
 ```
 
-Pulls the latest, runs any migrations, re-registers changed jobs, then runs
-`doctor`. Your config and your brief are never touched.
+Pulls the latest (fast-forward only — it refuses if you've edited kit files),
+restarts the watcher and scheduler, then runs `doctor`. Your config and your
+brief are never touched. If a release changes the bridge patches or the
+scheduled-task definitions, its release notes will say so — those two things
+don't re-apply themselves.
+
+When the WhatsApp pairing expires (~every 20 days, the one routine chore):
+[docs/RE-PAIRING.md](docs/RE-PAIRING.md).
 
 ## Credits
 
