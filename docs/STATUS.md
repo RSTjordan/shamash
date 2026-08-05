@@ -4,7 +4,7 @@ Honest state of the kit, updated whenever work lands. If this file and the
 runbook disagree, this file is right: the runbook describes the finished
 product, this one describes what actually exists on disk.
 
-Last updated: 2026-08-05 (assembly night, complete).
+Last updated: 2026-08-05 (assembly night, complete — and published).
 
 ## Done
 
@@ -55,4 +55,4 @@ majors were fixed the same night; the honest leftovers are below.
    configurable; `effort` applies to the resident agent only; notify's
    card-verification match is first-60-chars (a resent identical card can
    mis-verify); no automated re-apply of bridge patches after `update`.
-4. No git remote yet — the repo goes public on the author's final sign-off.
+4. PUBLIC since 2026-08-05: https://github.com/RSTjordan/shamash
