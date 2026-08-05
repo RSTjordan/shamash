@@ -135,7 +135,10 @@ Install only what's missing, and only what stage 2 asked for. Use `winget`.
    worst failure this kit has (see stage 6c).
 3. Build. If the build fails on CGO, go back to gcc in stage 3 — that is nearly
    always the cause.
-4. Start it and confirm `/api/health` answers before continuing.
+4. Start it once and confirm it reaches **"Waiting for QR code scan"** — that
+   IS the success state here. Do not probe `/api/health` yet: on a first-ever
+   run the REST server starts only AFTER pairing (verified against the pinned
+   commit), so the health check belongs at the end of stage 5, not here.
 
 ## Stage 4b — Wire the MCP server into Claude Code
 
@@ -173,8 +176,10 @@ your phone → Settings → Linked devices → Link a device, and scan this."*
 
 Then **verify** — don't trust the log line. Poll `messages.db` until synced
 messages appear. Zero messages after 60 seconds means it didn't pair; QR codes
-expire — let it print a fresh one and have them try again. When paired, close
-the console; from stage 8 the hidden task owns the bridge.
+expire — let it print a fresh one and have them try again. Once paired, the
+REST server comes up too — NOW `/api/health` (with the Bearer token from
+`store\.bridge-token`) must answer; that closes stage 4's deferred check.
+Then close the console; from stage 8 the hidden task owns the bridge.
 
 Tell them the pairing needs re-scanning about every 20 days, and that the
 procedure for that day is written down in `docs/RE-PAIRING.md` — it's the one

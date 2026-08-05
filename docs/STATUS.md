@@ -40,9 +40,15 @@ majors were fixed the same night; the honest leftovers are below.
 
 ## Not done — the honest list before anyone installs this
 
-1. **Never installed end-to-end on a clean machine.** Everything was proven
-   on ONE machine (the author's), inside the personal installation the kit
-   was extracted from. The first stranger's install will find things.
+1. **Never installed end-to-end on a clean machine.** A cold-clone
+   rehearsal (2026-08-05: fresh kit clone + virgin pinned upstream, non-live
+   ports) DID prove: the pin fetches, the patch docs apply to unmodified
+   upstream, the patched bridge builds, `uv sync` works, config drives
+   ports/channels, prompts render, the stage-5 terminal-QR flow behaves as
+   documented, and doctor reports every state correctly — including the
+   rehearsal's own discovery that the REST server only starts after pairing.
+   What only a real fresh machine can prove: dependency installs from
+   nothing, task registration, and the full paired loop.
 2. The welcome PDF and approval-card *flow* exist in English only; RISKS and
    the README are bilingual.
 3. Known small gaps, accepted for v0: the whisper daemon port (8090) is not

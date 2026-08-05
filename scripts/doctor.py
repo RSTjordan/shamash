@@ -139,8 +139,22 @@ def check_bridges(cfg):
                 line(name, f"unexpected HTTP {exc.code} from health check")
         except (urllib.error.URLError, OSError, ValueError) as exc:
             reason = getattr(exc, "reason", exc)
-            line(name, f"NOT REACHABLE ({reason}) — bridge not running? "
-                       "Check the ShamashBridge task below")
+            # An unpaired bridge RUNS without listening: the upstream starts
+            # its REST server only after WhatsApp pairing completes (verified
+            # against the pinned commit). Distinguish that from a dead task.
+            probe = subprocess.run(
+                ["tasklist", "/FI", "IMAGENAME eq whatsapp-bridge.exe",
+                 "/FO", "CSV", "/NH"],
+                capture_output=True, text=True,
+            )
+            if "whatsapp-bridge" in (probe.stdout or ""):
+                line(name, f"NOT REACHABLE ({reason}) but a bridge PROCESS is "
+                           "running — most likely it is waiting for a QR scan "
+                           "(never paired, or the pairing was reset). See "
+                           "docs/RE-PAIRING.md")
+            else:
+                line(name, f"NOT REACHABLE ({reason}) — bridge not running? "
+                           "Check the ShamashBridge task below")
 
 
 # ------------------------------------------------------------------ databases
