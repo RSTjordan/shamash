@@ -1,7 +1,11 @@
 """Build the brand marks as square PNGs (profile pictures, social, favicons).
 
 Three marks, 1024x1024 each:
-  shamash-candle-warm.png        the candle alone -- THE avatar. This is the one
+  NOTE (2026-08-05): the canonical avatar is now docs/brand/shamash-avatar.png
+  (owner-chosen robot-candle mascot, a committed asset). This script builds
+  only the LEGACY marks below.
+
+  shamash-candle-warm.png        the candle alone -- retired avatar. Was the one
                                  the installer sends the user at stage 9c to set
                                  as their agent's profile picture.
   shamash-robot-candle-warm.png  the attendant robot lit by the candle it tends

@@ -414,12 +414,12 @@ If the build fails (it needs headless Edge or Chrome), send
 ### Stage 9c — Give it a face
 
 Immediately after the welcome PDF, send them the avatar —
-`docs/brand/shamash-candle-warm.png` — as an **image** in the same chat. It is
+`docs/brand/shamash-avatar.png` — as an **image** in the same chat. It is
 already square, 1024px, and drawn so a circular crop never clips it, so they can
 set it straight from the chat on their phone. Do not skip this and do not offer
 them a choice of marks; this is the one.
 
-If the file is missing (a partial clone), regenerate it:
+If the file is missing (a partial clone), re-pull the repo — the avatar is a committed asset, not a generated one. (`build_brand.py` only rebuilds the legacy marks.) If it still can't be found:
 
 ```
 py -3 scripts\build_brand.py

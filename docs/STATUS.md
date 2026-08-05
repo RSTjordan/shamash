@@ -18,7 +18,7 @@ Last updated: 2026-08-05 (assembly night, complete — and published).
 - `brief/AGENT_BRIEF.template.md`, `brief/PEOPLE.template.md`.
 - `patches/` — the bridge modifications, as apply-time documents (log
   redaction, message framing, optional group photo).
-- Brand: `scripts/build_brand.py`, three PNGs, `shamash-candle-warm.png` as
+- Brand: `scripts/build_brand.py`, `shamash-avatar.png` (the robot-candle mascot) as
   THE avatar; the 7-page `Welcome-to-Shamash.pdf` + `scripts/build_welcome.py`.
 
 - `scripts/` runtime, fully config-driven: watcher.py (steering, typing-ack,

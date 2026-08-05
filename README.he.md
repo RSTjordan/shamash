@@ -1,5 +1,7 @@
 # שמש (Shamash)
 
+<p align="center"><img src="docs/brand/shamash-mascot.png" width="170" alt="שמש — רובוט-נר"></p>
+
 *השַׁמָּשׁ הוא הנר התשיעי בחנוכייה — זה שמדליק את כל האחרים ואז עומד בצד.*
 
 **[English](README.md)** 🇬🇧

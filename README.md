@@ -1,5 +1,7 @@
 # Shamash
 
+<p align="center"><img src="docs/brand/shamash-mascot.png" width="170" alt="Shamash — the robot-candle"></p>
+
 *The shamash is the attendant candle — the one that lights the others and then
 stands to the side.*
 
@@ -28,7 +30,7 @@ Two things that set it apart:
 📄 **[Welcome to Shamash (PDF)](docs/welcome/Welcome-to-Shamash.pdf)** — five
 minutes, illustrated: what it does, how it works, where it stops, and the first
 five things to send it. Your assistant sends you this itself, right after its
-first hello — followed by [the avatar](docs/brand/shamash-candle-warm.png), so
+first hello — followed by [the avatar](docs/brand/shamash-avatar.png), so
 it has a face in your chat list instead of a grey circle.
 
 ---
