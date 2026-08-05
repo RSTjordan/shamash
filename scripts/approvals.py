@@ -47,6 +47,7 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import config
 import notify
+import strings
 
 CFG = config.load()
 ROOT = pathlib.Path(CFG["root"])
@@ -139,23 +140,23 @@ def card(request: dict, context: str = "") -> str:
     reason = (request.get("decision_reason") or "approval required").strip()
     rules = _rule_labels(request.get("permission_suggestions"))
     lines = [
-        "🔒 *Action blocked — needs your approval*",
+        strings.t("card_title"),
         "",
         f"*{tool}:* {what}",
         f"_{reason}_",
     ]
     if context:
-        lines.append(f"For: {context}")
+        lines.append(strings.t("card_for", context=context))
     lines += [
         "",
-        "👍 = allow this once",
+        strings.t("card_once"),
     ]
     if rules:
-        lines.append(f"❤️ = always — saves a permanent rule ({', '.join(rules[:2])})")
+        lines.append(strings.t("card_always", rules=", ".join(rules[:2])))
     lines += [
-        "👎 = deny",
+        strings.t("card_deny"),
         "",
-        "_(replying 1 / always / 0 works too)_",
+        strings.t("card_hint"),
     ]
     return "\n".join(lines)
 

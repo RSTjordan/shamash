@@ -60,6 +60,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import config
+import strings
 
 cfg = config.load()
 
@@ -290,7 +291,7 @@ def _notify(channel: str, commands: list, body: str) -> None:
     _id, jid, _ts, content, media, _fname = commands[-1]
     text = (content or "").strip()
     quoted = text.splitlines()[0][:80] if text else (
-        "voice message" if media == "audio" else "")
+        strings.t("voice_message") if media == "audio" else "")
     res = bridge_post(
         channel,
         "/send",
@@ -332,13 +333,13 @@ def ack_new(channel: str, commands: list) -> None:
         if len(_acked) > 500:
             _acked.clear()
         return
-    _ack(channel, commands, "On it…")
+    _ack(channel, commands, strings.t("on_it"))
 
 
 def ack_steered(channel: str, commands: list) -> None:
     """A message folded into the RUNNING turn gets a distinct ack, so the
     owner knows it joined the current task rather than starting a new one."""
-    _ack(channel, commands, "Folding that into the current task…")
+    _ack(channel, commands, strings.t("steer_ack"))
 
 
 def make_progress_sender(channel: str, jid: str):
@@ -373,7 +374,7 @@ def send_reply(channel: str, commands: list, text: str) -> bool:
     """Deliver the agent's final answer (system-delivered channels only)."""
     _id, jid, _ts, content, media, _fname = commands[-1]
     quoted = (content or "").strip().splitlines()[0][:80] if (content or "").strip() else (
-        "voice message" if media == "audio" else "")
+        strings.t("voice_message") if media == "audio" else "")
     text = text.strip()
     if len(text) > 60000:
         text = text[:60000] + "…"
@@ -393,20 +394,11 @@ def send_reply(channel: str, commands: list, text: str) -> bool:
 
 
 def send_failure_notice(channel: str, commands: list) -> None:
-    _notify(
-        channel,
-        commands,
-        "I couldn't complete this command. Try again or rephrase.",
-    )
+    _notify(channel, commands, strings.t("failure_notice"))
 
 
 def send_skip_notice(channel: str, commands: list, count: int) -> None:
-    _notify(
-        channel,
-        commands,
-        f"Found {count} old message(s) from system downtime — skipped them. "
-        "Resend whatever is still relevant.",
-    )
+    _notify(channel, commands, strings.t("skip_notice", count=count))
 
 
 # ------------------------------------------------------------- transcription
