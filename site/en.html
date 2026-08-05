@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shamash — a chief of staff for your WhatsApp, on your own machine</title>
+<meta name="description" content="A personal WhatsApp AI agent that runs on your computer, on the Claude subscription you already pay for. No cloud, no API key, no telemetry. Open source.">
+<link rel="icon" type="image/png" href="shamash-avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#2b1d16;--ink-soft:#6b5648;--cream:#faf5ec;--terra:#d97757;--terra-deep:#b85c3e;--card:#fff;--line:#e8dcc8;--mono:ui-monospace,Consolas,monospace}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"Heebo","Segoe UI",Arial,sans-serif;background:var(--cream);color:var(--ink);line-height:1.65;display:grid;min-height:100vh;place-items:center;padding:24px}
+  .box{max-width:640px;text-align:center}
+  .box img{width:200px;filter:drop-shadow(0 14px 24px rgba(43,29,22,.18))}
+  h1{font-size:2rem;font-weight:900;margin:18px 0 10px}
+  p{color:var(--ink-soft);margin-bottom:10px}
+  .prompt{direction:ltr;text-align:left;background:#1c120d;border-radius:12px;padding:18px;font-family:var(--mono);font-size:.85rem;color:#ffd9c4;margin:22px 0;white-space:pre-wrap;position:relative}
+  .copy-btn{position:absolute;top:10px;right:10px;background:var(--terra);border:none;color:#fff;font-weight:700;font-size:.85rem;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit}
+  a.btn{display:inline-block;margin:6px;padding:12px 24px;border-radius:12px;font-weight:700;text-decoration:none;background:var(--terra);color:#fff}
+  a.btn.ghost{background:var(--card);color:var(--ink);border:2px solid var(--line)}
+  a.he{color:var(--terra-deep);font-weight:700;text-decoration:none}
+</style>
+</head>
+<body>
+  <div class="box">
+    <img src="shamash-mascot.png" alt="Shamash — the robot-candle">
+    <h1>A chief of staff for your WhatsApp,<br>running on your own machine.</h1>
+    <p>Twice-daily digests, on-demand commands, calendar, approvals — on the Claude subscription you already pay for. No cloud service, no API key, nothing phones home.</p>
+    <p>Install: open Claude Code in an empty folder and paste —</p>
+    <div class="prompt" id="prompt">Clone https://github.com/RSTjordan/shamash into this folder, then read
+install/RUNBOOK.md and carry it out stage by stage. Stop and ask me wherever
+the runbook says to stop. Don't skip the risk gate.<button class="copy-btn" onclick="copyPrompt(this)">Copy</button></div>
+    <p>
+      <a class="btn" href="https://github.com/RSTjordan/shamash#readme">Full docs on GitHub</a>
+      <a class="btn ghost" href="https://github.com/RSTjordan/shamash/blob/main/RISKS.md">Read the risks first</a>
+    </p>
+    <p><a class="he" href="index.html">← לגרסה העברית המלאה</a></p>
+  </div>
+<script>
+function copyPrompt(btn){
+  const text = document.getElementById('prompt').innerText.replace(/Copy$|Copied ✓$/,'').trim();
+  navigator.clipboard.writeText(text).then(()=>{ btn.textContent='Copied ✓'; setTimeout(()=>{btn.textContent='Copy';},2000); });
+}
+</script>
+</body>
+</html>

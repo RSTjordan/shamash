@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>שמש (Shamash) — ראש לשכה לוואטסאפ שלך, על המחשב שלך</title>
+<meta name="description" content="סוכן AI אישי לוואטסאפ שרץ על המחשב שלך, על מנוי ה-Claude שכבר יש לך. בלי ענן, בלי API key, בלי טלמטריה. קוד פתוח.">
+<meta property="og:title" content="שמש (Shamash) — ראש לשכה לוואטסאפ שלך">
+<meta property="og:description" content="רץ על המחשב שלך, על מנוי ה-Claude שלך. שום דבר לא מדווח הביתה.">
+<meta property="og:image" content="https://myshamash.com/shamash-avatar.png">
+<link rel="icon" type="image/png" href="shamash-avatar.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2b1d16;          /* warm near-black */
+    --ink-soft:#6b5648;
+    --cream:#faf5ec;
+    --cream-deep:#f3ead9;
+    --terra:#d97757;        /* brand terracotta */
+    --terra-deep:#b85c3e;
+    --glow:#ffc46e;
+    --card:#ffffff;
+    --line:#e8dcc8;
+    --mono:ui-monospace,Consolas,"Courier New",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Heebo","Segoe UI",Arial,sans-serif;
+    background:var(--cream);color:var(--ink);line-height:1.65;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+  /* ---------- nav ---------- */
+  nav{display:flex;align-items:center;gap:16px;padding:18px 0}
+  nav .logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:1.25rem;text-decoration:none;color:var(--ink)}
+  nav .logo img{width:34px;height:34px;border-radius:50%}
+  nav .spacer{flex:1}
+  nav a.link{color:var(--ink-soft);text-decoration:none;font-weight:500;font-size:.95rem}
+  nav a.link:hover{color:var(--terra-deep)}
+
+  /* ---------- hero ---------- */
+  header{position:relative;overflow:hidden}
+  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:center;padding:44px 0 64px}
+  .hero h1{font-size:clamp(2rem,5vw,3.3rem);font-weight:900;line-height:1.15;letter-spacing:-.5px}
+  .hero h1 em{font-style:normal;color:var(--terra-deep)}
+  .hero p.sub{margin-top:18px;font-size:1.2rem;color:var(--ink-soft);max-width:34ch}
+  .hero .ctas{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
+  .btn{display:inline-block;padding:13px 26px;border-radius:12px;font-weight:700;font-size:1.05rem;text-decoration:none;transition:transform .12s ease, box-shadow .12s ease}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--terra);color:#fff;box-shadow:0 6px 18px rgba(217,119,87,.35)}
+  .btn.primary:hover{background:var(--terra-deep)}
+  .btn.ghost{border:2px solid var(--line);color:var(--ink);background:var(--card)}
+  .btn.ghost:hover{border-color:var(--terra)}
+  .hero .mascot{position:relative;text-align:center}
+  .hero .mascot::before{
+    content:"";position:absolute;inset:-8% -4% auto -4%;height:110%;
+    background:radial-gradient(closest-side, rgba(255,196,110,.55), rgba(255,196,110,0));
+    z-index:0;filter:blur(6px);
+  }
+  .hero .mascot img{position:relative;z-index:1;width:min(320px,80%);filter:drop-shadow(0 18px 30px rgba(43,29,22,.18))}
+  .tagline{font-size:.95rem;color:var(--ink-soft);margin-top:10px;font-style:italic}
+
+  /* ---------- trust strip ---------- */
+  .strip{background:var(--ink);color:var(--cream);padding:18px 0}
+  .strip .wrap{display:flex;gap:10px 34px;flex-wrap:wrap;justify-content:center;font-weight:500;font-size:1rem}
+  .strip span::before{content:"✓ ";color:var(--glow);font-weight:900}
+
+  /* ---------- sections ---------- */
+  section{padding:64px 0}
+  section.alt{background:var(--cream-deep)}
+  h2{font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:900;margin-bottom:8px}
+  .lead{color:var(--ink-soft);font-size:1.08rem;max-width:62ch;margin-bottom:34px}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px;box-shadow:0 2px 10px rgba(43,29,22,.04)}
+  .card .emoji{font-size:1.6rem}
+  .card h3{font-size:1.1rem;font-weight:700;margin:10px 0 6px}
+  .card p{color:var(--ink-soft);font-size:.98rem}
+
+  /* ---------- how ---------- */
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;counter-reset:step}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+  .step::before{
+    counter-increment:step;content:counter(step);
+    display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:50%;background:var(--terra);color:#fff;font-weight:900;margin-bottom:10px;
+  }
+  .step h3{font-size:1.02rem;margin-bottom:4px}
+  .step p{font-size:.93rem;color:var(--ink-soft)}
+
+  /* ---------- honesty ---------- */
+  .honest{background:var(--card);border:2px solid var(--terra);border-radius:18px;padding:28px;display:grid;gap:12px}
+  .honest h2{margin-bottom:4px}
+  .honest ul{list-style:none;display:grid;gap:10px}
+  .honest li{padding-inline-start:26px;position:relative;color:var(--ink)}
+  .honest li::before{content:"•";position:absolute;inset-inline-start:6px;color:var(--terra);font-weight:900}
+  .honest a{color:var(--terra-deep);font-weight:700}
+
+  /* ---------- install ---------- */
+  .install-box{background:var(--ink);border-radius:18px;padding:30px;color:var(--cream)}
+  .install-box h2{color:#fff}
+  .install-box ol{margin:16px 0 0;padding-inline-start:22px;display:grid;gap:14px;font-size:1.02rem}
+  .prompt{direction:ltr;text-align:left;background:#1c120d;border:1px solid #4a382e;border-radius:12px;padding:18px;font-family:var(--mono);font-size:.88rem;line-height:1.6;color:#ffd9c4;position:relative;margin-top:10px;white-space:pre-wrap}
+  .copy-btn{position:absolute;top:10px;right:10px;background:var(--terra);border:none;color:#fff;font-family:"Heebo",sans-serif;font-weight:700;font-size:.85rem;padding:7px 14px;border-radius:8px;cursor:pointer}
+  .copy-btn:hover{background:var(--terra-deep)}
+  .install-note{margin-top:14px;font-size:.95rem;color:#d9c6b2}
+  .install-note a{color:var(--glow)}
+
+  /* ---------- footer ---------- */
+  footer{padding:44px 0 60px;color:var(--ink-soft);font-size:.95rem}
+  footer .wrap{display:flex;gap:12px 30px;flex-wrap:wrap;align-items:center}
+  footer a{color:var(--ink-soft)}
+  footer a:hover{color:var(--terra-deep)}
+  footer .heart{color:var(--terra)}
+
+  @media (max-width:760px){
+    .hero{grid-template-columns:1fr;text-align:center;padding-top:16px}
+    .hero p.sub{margin-inline:auto}
+    .hero .ctas{justify-content:center}
+    .hero .mascot{order:-1}
+    .hero .mascot img{width:min(230px,60%)}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="/"><img src="shamash-avatar.png" alt="שמש"> שמש · Shamash</a>
+      <div class="spacer"></div>
+      <a class="link" href="https://github.com/RSTjordan/shamash">GitHub</a>
+      <a class="link" href="https://github.com/RSTjordan/shamash/blob/main/docs/welcome/Welcome-to-Shamash.pdf">המדריך המאויר</a>
+      <a class="link" href="en.html">EN</a>
+    </nav>
+    <div class="hero">
+      <div>
+        <h1>ראש לשכה לוואטסאפ שלך.<br>רץ <em>על המחשב שלך</em>.</h1>
+        <p class="sub">קורא את הצ'אטים פעמיים ביום ושולח דייג'סט אחד: מה הוא סגר לבד, מה הוא קבע ביומן, ומה חיכה לך — ולמה. ואפשר פשוט לכתוב לו.</p>
+        <div class="ctas">
+          <a class="btn primary" href="#install">להתקנה →</a>
+          <a class="btn ghost" href="#what">מה הוא עושה?</a>
+        </div>
+      </div>
+      <div class="mascot">
+        <img src="shamash-mascot.png" alt="שמש — רובוט הנר">
+        <p class="tagline">השַׁמָּשׁ — הנר שמדליק את כל האחרים ואז עומד בצד.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="strip">
+  <div class="wrap">
+    <span>רץ על מנוי ה-Claude שכבר יש לך</span>
+    <span>בלי API key ובלי חיוב לפי הודעה</span>
+    <span>שום דבר לא מדווח הביתה</span>
+    <span>קוד פתוח, MIT</span>
+  </div>
+</div>
+
+<section id="what">
+  <div class="wrap">
+    <h2>מה הוא באמת עושה</h2>
+    <p class="lead">לא צ'אטבוט. עוזר אישי שמכיר את האנשים שלך, עובד כשאתה לא מסתכל, ויודע מה מותר לו לעשות לבד — כי אתה כתבת לו את זה.</p>
+    <div class="cards">
+      <div class="card"><div class="emoji">📋</div><h3>דייג'סט פעמיים ביום</h3><p>מה נעשה, מה מחכה לך, מה ביומן, אילו מיילים שווים את תשומת הלב שלך. הודעה אחת, לא עשרים.</p></div>
+      <div class="card"><div class="emoji">💬</div><h3>פקודות בצ'אט</h3><p>כותבים לו בוואטסאפ — לסכם קבוצה שהזנחת, למצוא קובץ, לבדוק את היומן, לענות למישהו. הוא עונה בעברית טבעית.</p></div>
+      <div class="card"><div class="emoji">🔀</div><h3>לדבר תוך כדי עבודה</h3><p>נזכרת במשהו באמצע? הודעת המשך נכנסת לתוך המשימה הרצה — כמו עם בן אדם, בלי "חכה שיסיים".</p></div>
+      <div class="card"><div class="emoji">🗂️</div><h3>פרויקטים ארוכים</h3><p>נותנים לו משהו רב-ימי, ומנוע מתוזמן ממשיך לקדם אותו במשמרות מוגבלות עם דיווח אחרי כל אחת. העבודה שורדת את השיחה.</p></div>
+      <div class="card"><div class="emoji">📅</div><h3>יומן</h3><p>קובע פגישות שמבקשים ממך — אחרי שבדק שאתה פנוי. הופך "אשלח מחר" לתזכורת אמיתית.</p></div>
+      <div class="card"><div class="emoji">🔒</div><h3>כרטיסי אישור</h3><p>כל דבר מסוכן נעצר ושואל אותך בוואטסאפ. ריאקציה 👍 והוא ממשיך. אתה תמיד בשליטה.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="how">
+  <div class="wrap">
+    <h2>איך זה עובד</h2>
+    <p class="lead">ארבעה חלקים, כולם אצלך: וואטסאפ ← גשר מקומי ← Claude Code ← הידיים שלו (יומן, מייל, קבצים). הזיכרון שלו הוא תיקיית קבצי טקסט שאתה יכול לפתוח ולערוך.</p>
+    <div class="steps">
+      <div class="step"><h3>הוא רואה</h3><p>הגשר הוא "מכשיר מקושר", כמו WhatsApp Web. ההודעות נשמרות בקובץ על הדיסק שלך — ורק שם.</p></div>
+      <div class="step"><h3>הוא חושב</h3><p>Claude Code רץ על ההודעות החדשות יחד עם קבצי ההנחיה שלך. הודעות קוליות מתומללות מקומית, כולל עברית.</p></div>
+      <div class="step"><h3>הוא פועל</h3><p>יומן, מייל, קבצים — בגבולות שכתבת לו. כל פעולה נרשמת ביומן, ואותה הודעה לעולם לא מטופלת פעמיים.</p></div>
+      <div class="step"><h3>הוא מדווח</h3><p>התשובה חוזרת לאותו צ'אט, ולא נחשבת "נשלחה" עד שהיא מאומתת בבסיס הנתונים.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="honest">
+      <h2>שלוש שאלות שכדאי לשאול לפני</h2>
+      <ul>
+        <li><strong>כמה זה עולה?</strong> מנוי Claude שכבר יש לך: עובד על Pro, הכי טוב על Max. אין שום תשלום נוסף לאף אחד — גם לא לנו. אין "לנו".</li>
+        <li><strong>כמה זמן לוקח להתקין?</strong> בערך 40 דקות. את רובן הסוכן עובד לבד; ממך צריך בערך 15 דקות של תשומת לב — ריאיון קצר על האנשים שלך, סריקת QR, ושער סיכונים.</li>
+        <li><strong>מה הסיכונים?</strong> אמיתיים ולא מוסתרים: ההתקנה נותנת להודעות וואטסאפ נתיב אל המחשב שלך, והחיבור הוא בקליינט לא-רשמי (סיכון חסימה נמוך, לא אפס). <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.he.md">קרא את RISKS.he.md לפני שאתה מתקין</a> — המתקין ממילא יעצור ויוודא שקראת.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="install">
+  <div class="wrap">
+    <div class="install-box">
+      <h2>התקנה</h2>
+      <ol>
+        <li>מתקינים <a style="color:var(--glow)" href="https://claude.com/claude-code">Claude Code</a> ומתחברים עם מנוי Claude (Pro או Max).</li>
+        <li>פותחים אותו בתיקייה ריקה ומדביקים את זה:</li>
+      </ol>
+      <div class="prompt" id="prompt">Clone https://github.com/RSTjordan/shamash into this folder, then read
+install/RUNBOOK.md and carry it out stage by stage. Stop and ask me wherever
+the runbook says to stop. Don't skip the risk gate.<button class="copy-btn" onclick="copyPrompt(this)">העתק</button></div>
+      <p class="install-note">זהו. הסוכן-המתקין עושה את השאר: בונה, שואל אותך את השאלות הנכונות, ומסיים בהודעת וואטסאפ אמיתית שמחכה לתשובה שלך. Windows בלבד בינתיים · <a href="https://github.com/RSTjordan/shamash#readme">התיעוד המלא ב-GitHub</a></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>שמש · Shamash</span>
+    <a href="https://github.com/RSTjordan/shamash">GitHub</a>
+    <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.he.md">סיכונים</a>
+    <a href="https://github.com/RSTjordan/shamash/blob/main/docs/welcome/Welcome-to-Shamash.pdf">Welcome PDF</a>
+    <a href="https://github.com/RSTjordan/shamash/blob/main/LICENSE">MIT</a>
+    <span class="spacer" style="flex:1"></span>
+    <span>נבנה בישראל <span class="heart">♥</span> פרויקט אישי, בלי שרתים ובלי מעקב</span>
+  </div>
+</footer>
+
+<script>
+function copyPrompt(btn){
+  const text = document.getElementById('prompt').innerText.replace(/העתק$|Copied ✓$|הועתק ✓$/,'').trim();
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent = 'הועתק ✓';
+    setTimeout(()=>{ btn.textContent = 'העתק'; }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>
