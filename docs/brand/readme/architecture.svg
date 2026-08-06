@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 38 656 246" width="984"><rect x="-8" y="38" width="656" height="246" fill="#fff"/>
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3.2" orient="auto">
+        <path d="M0,0 L7,3.2 L0,6.4 z" fill="#9aa1b0"/>
+      </marker>
+      <linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#242a3c"/><stop offset="1" stop-color="#141824"/>
+      </linearGradient>
+    </defs>
+
+    <!-- boxes -->
+    <g font-family="Segoe UI,Arial" >
+      <rect x="8" y="60" width="118" height="74" rx="8" fill="#eef0f4" stroke="#d7dbe3"/>
+      <text x="67" y="88" text-anchor="middle" font-size="14" font-weight="600" fill="#15161a">WhatsApp</text>
+      <text x="67" y="107" text-anchor="middle" font-size="11" fill="#6b7280">your chats,</text>
+      <text x="67" y="121" text-anchor="middle" font-size="11" fill="#6b7280">your number</text>
+
+      <rect x="158" y="60" width="118" height="74" rx="8" fill="#fff" stroke="#e3e5ea"/>
+      <text x="217" y="88" text-anchor="middle" font-size="14" font-weight="600" fill="#15161a">The bridge</text>
+      <text x="217" y="107" text-anchor="middle" font-size="11" fill="#6b7280">a linked device</text>
+      <text x="217" y="121" text-anchor="middle" font-size="11" fill="#6b7280">on your laptop</text>
+
+      <rect x="308" y="46" width="132" height="102" rx="8" fill="url(#gd)"/>
+      <text x="374" y="80" text-anchor="middle" font-size="14" font-weight="600" fill="#fff">The agent</text>
+      <text x="374" y="100" text-anchor="middle" font-size="11" fill="#b9c0d0">Claude Code,</text>
+      <text x="374" y="114" text-anchor="middle" font-size="11" fill="#b9c0d0">reading your</text>
+      <text x="374" y="128" text-anchor="middle" font-size="11" fill="#e8a33d">instruction files</text>
+
+      <rect x="472" y="60" width="160" height="74" rx="8" fill="#fff" stroke="#e3e5ea"/>
+      <text x="552" y="86" text-anchor="middle" font-size="14" font-weight="600" fill="#15161a">Its hands</text>
+      <text x="552" y="105" text-anchor="middle" font-size="11" fill="#6b7280">calendar · mail · files</text>
+      <text x="552" y="119" text-anchor="middle" font-size="11" fill="#6b7280">your computer</text>
+
+      <!-- memory -->
+      <rect x="158" y="205" width="282" height="66" rx="8" fill="#fff8ec" stroke="#f0dcb8"/>
+      <text x="299" y="230" text-anchor="middle" font-size="13" font-weight="600" fill="#15161a">Its memory — plain text files you can read</text>
+      <text x="299" y="249" text-anchor="middle" font-size="11" fill="#6b7280">how to behave · who people are · what it already did</text>
+      <text x="299" y="264" text-anchor="middle" font-size="10.5" fill="#a4712a">nothing hidden, nothing in a database you can't open</text>
+
+      <!-- arrows -->
+      <line x1="128" y1="88" x2="154" y2="88" stroke="#9aa1b0" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="278" y1="88" x2="304" y2="88" stroke="#9aa1b0" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="442" y1="88" x2="468" y2="88" stroke="#9aa1b0" stroke-width="2" marker-end="url(#ar)"/>
+      <!-- return path -->
+      <path d="M552 138 L552 178 L67 178 L67 138" fill="none" stroke="#25d366"
+            stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar)"/>
+      <!-- memory links -->
+      <path d="M374 148 L374 205" fill="none" stroke="#e8a33d" stroke-width="2"/>
+      <path d="M217 205 L217 148" fill="none" stroke="#e8a33d" stroke-width="2" opacity=".35"/>
+      <!-- label last, so it sits on top of the lines it crosses -->
+      <rect x="150" y="169" width="300" height="18" fill="#fff"/>
+      <text x="300" y="182" text-anchor="middle" font-size="10.5" fill="#1f9c50"
+            font-family="Segoe UI,Arial">the answer goes back into the same chat</text>
+
+      <!-- travelling dot: animates on screen, hidden in the printed PDF -->
+      
+    </g>
+  </svg>

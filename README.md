@@ -1,6 +1,9 @@
 # Shamash
 
-<p align="center"><img src="docs/brand/shamash-mascot.png" width="170" alt="Shamash — the robot-candle"></p>
+<p align="center">
+  <img src="docs/brand/readme/hero-chat.png" width="620"
+       alt="A WhatsApp chat with Shamash: a morning digest of three things from overnight, a reply asking it to book a meeting, and its confirmation that the calendar is updated.">
+</p>
 
 *The shamash is the attendant candle — the one that lights the others and then
 stands to the side.*
@@ -113,25 +116,18 @@ stage, not the install.
   ([docs/JOBS.md](docs/JOBS.md) — there is no cron syntax; it's simpler).
 - **Teleport** — continue any desk Claude Code session from WhatsApp, guarded
   by the same approval cards. Off by default: switched on, it gives WhatsApp
-  reach into every project on your machine ([RISKS.md](RISKS.md) §1b).
+  reach into every project on your machine ([RISKS.md](RISKS.md) §1b). See
+  [Teleport](#teleport) below for what using it actually looks like.
 
 ## How it works
 
 Four moving parts. Worth knowing, because when something breaks you'll know
 which box to look in.
 
-```
-   WhatsApp  ──▶  the bridge  ──▶   the agent    ──▶  its hands
-   your chats     a linked         Claude Code,       calendar · mail
-   your number    device on        reading your       your files
-                  your laptop      instruction files  a shell
-        ▲                                │
-        └──────── the answer, back ──────┤
-             into the same chat          │
-                                         ▼
-                        its memory — plain text files you can read
-                     how to behave · who people are · what it already did
-```
+<p align="center">
+  <img src="docs/brand/readme/architecture.svg" width="820"
+       alt="WhatsApp feeds the bridge, the bridge feeds the agent (Claude Code, reading your instruction files), the agent drives its hands — calendar, mail, files, your computer — and the answer goes back into the same chat. Underneath sits its memory: plain text files you can read.">
+</p>
 
 1. **It sees.** The bridge is a linked device, like WhatsApp Web. Every message
    lands in a SQLite file on your own disk — that file, not WhatsApp's API, is
@@ -181,6 +177,36 @@ handing you a blank file.
 The result is `brief/AGENT_BRIEF.md` — a plain-English document describing how
 your assistant should behave. It's yours. Edit it whenever you like; the agent
 reads it on every run, and updates never overwrite it.
+
+## Teleport
+
+You were working with Claude Code at your desk. You leave. The session is still
+sitting there, holding everything you had loaded into it. Send your assistant a
+single word:
+
+```
+teleport
+```
+
+It answers with a WhatsApp poll of your most recent desk sessions — the actual
+conversations, newest first. Tap one, and from that moment your messages in this
+chat go to *that* session instead of the assistant. Same context, same open
+files, same train of thought, now on your phone. Name a project and it skips the
+poll: `teleport into shamash`, or `continue the session where we were fixing the
+scheduler`.
+
+Anything the session wants to do that needs your say-so still arrives as an
+approval card. To hand the session back to your desk, send:
+
+```
+release
+```
+
+An idle session releases itself on its own (4 hours by default).
+
+Teleport is **off by default** and the installer asks before switching it on.
+Read [RISKS.md](RISKS.md) §1b first — it is real reach into your machine from a
+phone, and it deserves the deliberate yes.
 
 ## Updating
 

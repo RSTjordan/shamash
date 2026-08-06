@@ -431,6 +431,11 @@ Once the round trip works, the agent's **second** message is the welcome PDF:
 py -3 scripts\build_welcome.py          # regenerates docs\welcome\Welcome-to-Shamash.pdf
 ```
 
+(Maintainers only, and not part of an install: `py -3 scripts\build_readme_art.py`
+re-cuts the README artwork — the lit phone from the landing page and the
+architecture diagram from this welcome document. Run it after editing either
+source, or the READMEs quietly keep showing the old picture.)
+
 Send `docs/welcome/Welcome-to-Shamash.pdf` into the same chat, captioned:
 *"Everything you need to know about me, in five minutes. The last page has five
 things to try — start there."*
