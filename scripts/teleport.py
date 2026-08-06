@@ -205,7 +205,7 @@ POLL_TIMEOUT = 120.0  # two selection polls back-to-back must fit the
 # agent's documented 300s tool timeout with margin
 
 
-def _confirm(candidate, channel):
+def _confirm(candidate, channel, jid):
     import ask as ask_mod
     warn = strings.t("tp_open_warn") if looks_open(candidate) else ""
     q = strings.t("tp_confirm_q", repo=candidate["repo"],
@@ -213,11 +213,11 @@ def _confirm(candidate, channel):
                   age=_age_str(candidate["mtime"])) + warn
     opts = [strings.t("tp_continue"), strings.t("tp_pick_other"),
             strings.t("tp_cancel")]
-    res = ask_mod.ask(q, opts, timeout=POLL_TIMEOUT, channel=channel)
+    res = ask_mod.ask(q, opts, timeout=POLL_TIMEOUT, channel=channel, jid=jid)
     return res["chosen"]
 
 
-def _pick(candidates, channel):
+def _pick(candidates, channel, jid):
     """Top-5 picker. Option labels are capped HERE (ask.py would truncate
     and possibly renumber, making equality against our originals lossy) —
     and the chosen label is matched by its `N) ` prefix, never by string
@@ -229,7 +229,7 @@ def _pick(candidates, channel):
             for i, c in enumerate(top)]
     opts.append(strings.t("tp_cancel"))
     res = ask_mod.ask(strings.t("tp_pick_q"), opts, timeout=POLL_TIMEOUT,
-                      channel=channel)
+                      channel=channel, jid=jid)
     chosen = res["chosen"] or ""
     if not chosen or chosen == strings.t("tp_cancel"):
         return None
@@ -240,23 +240,30 @@ def _pick(candidates, channel):
 
 
 def request(hint, channel, jid=""):
-    """The full selection flow. Returns a dict for the caller's reply."""
+    """The full selection flow. Returns a dict for the caller's reply.
+
+    The selection polls are ALWAYS addressed explicitly, never left to the
+    channel's default recipient: on a group-configured main install that
+    default is the group, and these polls list the repos open on this
+    machine. A missing jid therefore falls back to the owner's own
+    self-chat — the narrowest chat that certainly reaches them."""
+    effective_jid = jid or CFG["self_jid"]
     candidates = discover()
     if not candidates:
         return {"requested": False, "reason": "no sessions found"}
     hits = _match(hint, candidates)
     chosen = None
     if len(hits) == 1:
-        verdict = _confirm(hits[0], channel)
+        verdict = _confirm(hits[0], channel, effective_jid)
         if verdict == strings.t("tp_continue"):
             chosen = hits[0]
         elif verdict == strings.t("tp_pick_other"):
-            chosen = _pick(candidates, channel)
+            chosen = _pick(candidates, channel, effective_jid)
     else:
-        chosen = _pick(hits or candidates, channel)
+        chosen = _pick(hits or candidates, channel, effective_jid)
     if chosen is None:
         return {"requested": False, "reason": "cancelled or no answer"}
-    write_request(chosen, channel, jid)
+    write_request(chosen, channel, effective_jid)
     return {"requested": True, "repo": chosen["repo"],
             "session_id": chosen["session_id"]}
 

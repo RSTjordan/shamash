@@ -103,5 +103,56 @@ class TestRequestState(unittest.TestCase):
             self.assertEqual(teleport.read_state()["jid"], "")
 
 
+class TestPickerAddressing(unittest.TestCase):
+    """The selection polls enumerate the repos open on this machine, so
+    they must never be left to a channel's default recipient — on a
+    group-configured main install that default is the GROUP."""
+
+    CAND = {"session_id": "s1", "cwd": "C:\\x\\myrepo", "repo": "myrepo",
+            "mtime": 0.0, "description": "building the thing",
+            "transcript": ""}
+
+    def _request(self, jid, candidates):
+        """Run the real request() flow with only the ask-level sends
+        stubbed out; returns the jid each picker was handed."""
+        seen = {}
+
+        def fake_confirm(candidate, channel, j):
+            seen["confirm"] = j
+            return teleport.strings.t("tp_continue")
+
+        def fake_pick(cands, channel, j):
+            seen["pick"] = j
+            return cands[0]
+
+        saved = (teleport.discover, teleport._confirm, teleport._pick)
+        with tempfile.TemporaryDirectory() as td:
+            teleport.STATE_FILE = Path(td) / "teleport.json"
+            teleport.discover = lambda limit=40: list(candidates)
+            teleport._confirm, teleport._pick = fake_confirm, fake_pick
+            try:
+                res = teleport.request("myrepo", "main", jid)
+            finally:
+                teleport.discover, teleport._confirm, teleport._pick = saved
+            return seen, res, teleport.read_state()
+
+    def test_missing_jid_falls_back_to_the_self_chat(self):
+        seen, res, st = self._request("", [self.CAND])
+        self.assertTrue(res["requested"])
+        # One candidate -> the confirm poll. Never "" (the channel default).
+        self.assertEqual(seen["confirm"], teleport.CFG["self_jid"])
+        self.assertTrue(seen["confirm"])
+        self.assertEqual(st["jid"], teleport.CFG["self_jid"])
+
+    def test_explicit_jid_reaches_both_pickers(self):
+        other = dict(self.CAND, session_id="s2", repo="myrepo-two")
+        seen, res, st = self._request("999@s.whatsapp.net",
+                                      [self.CAND, other])
+        self.assertTrue(res["requested"])
+        # Two hits -> the picker poll, addressed to the conversation.
+        self.assertEqual(seen["pick"], "999@s.whatsapp.net")
+        self.assertEqual(st["jid"], "999@s.whatsapp.net")
+
+
 if __name__ == "__main__":
     unittest.main()

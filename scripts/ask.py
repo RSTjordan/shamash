@@ -285,7 +285,7 @@ def _scan_since(explicit, started):
 
 def ask(question, options, timeout=900.0, selectable_count=1, channel=None,
         also_watch_ids=(), text_fallback=True, text_aliases=None,
-        reaction_aliases=None, since=None):
+        reaction_aliases=None, since=None, jid: str | None = None):
     """Send a poll and wait for the answer. See module docstring.
 
     `since` is the epoch to scan answers from; by default that is the moment
@@ -293,7 +293,15 @@ def ask(question, options, timeout=900.0, selectable_count=1, channel=None,
     poll (approvals' card, which is watched through `also_watch_ids`) pass
     their own send time — posting and verifying the poll row costs up to ~12s,
     and an answer landing in that window would otherwise fall before the scan
-    origin and be permanently invisible."""
+    origin and be permanently invisible.
+
+    `jid` pins the question to ONE chat. Naming the channel is not enough:
+    the main channel's canonical jid is the GROUP when one is configured,
+    so a picker that enumerates what is on this machine — the teleport
+    session list — would be posted to a shared chat. Callers that know
+    which conversation they belong to pass it, and the recipient, the
+    fallback legend, the expiry notice and the chat the answer is watched
+    in all follow (they read `ch["jid"]` from the same dict)."""
     question = str(question).strip()[:QUESTION_MAX]
     options = _prepare_options(options)
     selectable_count = _clamp_selectable(selectable_count, len(options))
@@ -305,6 +313,13 @@ def ask(question, options, timeout=900.0, selectable_count=1, channel=None,
     if not channels:
         return {"chosen": None, "answered_by": None, "channel": None,
                 "poll_id": None, "consumed_ids": [], "fallback_used": False}
+    if jid:
+        # Shallow copies: notify.CHANNELS is module state shared by every
+        # caller in this process, and one pinned question must not
+        # re-address anybody else's. Every later use — _post_poll,
+        # _send_text, _answer_rows, _poll_sender_jid — reads ch["jid"]
+        # from the dict it is handed, so overriding it here is enough.
+        channels = [dict(c, jid=jid) for c in channels]
 
     poll_id = None
     used = None
