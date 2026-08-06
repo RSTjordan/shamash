@@ -528,10 +528,19 @@ written atomically on every transition and deleted on release:
 ```json
 {"phase": "requested" | "active",
  "channel": "contact" | "main",
+ "jid": "<the conversation's chat JID — where announcements go>",
  "source_session_id": "...", "forked_session_id": "...",
  "cwd": "...", "repo": "...",
  "requested_at": "...", "started": "...", "last_activity": "..."}
 ```
+
+The `jid` exists because announcements must land in the SAME chat as the
+conversation (on a main install `chat_jids[0]` is the group — the exit
+one-liner must never land there while the conversation runs in the
+self-chat). The trigger rule passes it (`--jid`, from the command
+envelope's chat notation); empty falls back to the owner's self-chat,
+never the group. Each routed batch refreshes it to the live
+conversation's chat.
 
 `teleport.py` writes the `requested` phase (with `forked_session_id` empty);
 the watcher fills the rest when it takes over. A watcher restart while a
