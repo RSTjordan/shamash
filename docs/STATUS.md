@@ -4,7 +4,7 @@ Honest state of the kit, updated whenever work lands. If this file and the
 runbook disagree, this file is right: the runbook describes the finished
 product, this one describes what actually exists on disk.
 
-Last updated: 2026-08-05 (assembly night, complete — and published).
+Last updated: 2026-08-06 (survived its first real installation).
 
 ## Done
 
@@ -38,6 +38,30 @@ stale JOBS.md whose format would kill the scheduler, frame-patch ordering
 that could loop the agent on itself) and ~20 majors/minors. All criticals and
 majors were fixed the same night; the honest leftovers are below.
 
+## First real installation (2026-08-06)
+
+The kit's author migrated their own live agent onto a real runbook install
+of this kit (fresh clone, stages followed as written, existing WhatsApp
+pairing and message DB transplanted instead of stage 5's QR flow). The
+install survived its proving period: two consecutive unattended scheduled
+scans fired from the kit's own scheduler with verified WhatsApp delivery,
+plus command round-trips on both channels, an approval card released by
+reaction, and mid-turn steering. The previous system is retired.
+
+Defects found by the install, all fixed and pushed:
+
+- `start-bridge.cmd` / `start-contact-bridge.cmd` launched a bare exe name
+  after `cd` — fails on machines with `NoDefaultCurrentDirectoryInExePath=1`.
+  Now an explicit `.\` path.
+- Runbook stage 8: `New-ScheduledTaskTrigger -AtLogOn` needs `-User` for
+  unelevated registration, and `[TimeSpan]::MaxValue` as a repetition
+  duration is rejected by Task Scheduler XML (now 3650 days).
+- Every `.cmd`/`.vbs` shipped LF-only; cmd.exe requires CRLF and misparsed
+  doctor.cmd on checkouts where git didn't convert. `.gitattributes` now
+  forces CRLF for both extensions, and their comments are ASCII-only.
+- Scan scheduling: the runbook's schedule.json needs an `anchor` date for
+  any `every_days > 1` entry (a missing anchor silently skips the entry).
+
 ## Not done — the honest list before anyone installs this
 
 1. **Never installed end-to-end on a clean machine.** A cold-clone
@@ -47,8 +71,11 @@ majors were fixed the same night; the honest leftovers are below.
    ports/channels, prompts render, the stage-5 terminal-QR flow behaves as
    documented, and doctor reports every state correctly — including the
    rehearsal's own discovery that the REST server only starts after pairing.
-   What only a real fresh machine can prove: dependency installs from
-   nothing, task registration, and the full paired loop.
+   The author's real installation (above) has since proven task
+   registration and the full paired loop on one machine. Still unproven:
+   dependency installs from nothing on a stranger's fresh Windows (winget
+   path included), and the stage-5 QR pairing flow in a real install (the
+   author's migration transplanted an existing pairing past it).
 2. The welcome PDF and approval-card *flow* exist in English only; RISKS and
    the README are bilingual.
 3. Known small gaps, accepted for v0: the whisper daemon port (8090) is not
