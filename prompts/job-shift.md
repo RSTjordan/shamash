@@ -45,14 +45,18 @@ Job folder (spec + status): {JOB_DIR}
    a real multi-choice decision that blocks the rest of the shift — one of a
    known set of options, not an open-ended question — may go out as a native
    WhatsApp poll through scripts/ask.py, never as "reply 1/2/3" in text:
-     `py -3 {{PROJECT_ROOT}}\scripts\ask.py --option "..." --option "..." "question"`
+     `py -3 "{{PROJECT_ROOT}}\scripts\ask.py" --option "..." --option "..." "question"`
    That path is absolute on purpose: your working directory is the job's
    target repo, not {{PROJECT_ROOT}}, so a relative `scripts\ask.py` would
-   miss. With no `--channel` it lands wherever notify.py would have gone. Set
+   miss — and it is quoted, because the install path may contain spaces.
+   With no `--channel` it lands wherever notify.py would have gone. Set
    your shell tool's timeout to at least 300000 ms and wait for the JSON
    answer ("chosen"). Nobody may be awake, so budget for silence: if "chosen"
    is null, record the question under Blockers and keep working on whatever
-   the answer doesn't block. This is for decisions only — never for reporting
+   the answer doesn't block. A call that is blocked or denied instead of
+   answered (a permission refusal, a non-zero exit with no JSON) counts as
+   exactly the same thing as null — never retry it, never look for another
+   way to send it; record it and carry on. This is for decisions only — never for reporting
    progress, which stays rule 5's business.
 6. If you finish the ENTIRE job (definition of done met): edit JOB.md
    frontmatter to `status: done`.

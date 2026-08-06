@@ -1,7 +1,8 @@
 # Scheduled WhatsApp scan
 
 Work from {{PROJECT_ROOT}}. Follow brief/AGENT_BRIEF.md for ALL judgment
-calls. This run is fully autonomous — do not ask questions. The launcher
+calls. This run is fully autonomous — do not ask questions, except for the one
+carve-out in 7b (a blocking multi-choice decision, asked as a poll). The launcher
 passes the current local date/time (timezone {{TIMEZONE}}) in the prompt —
 trust it. The digest goes to {{OWNER_NAME}} and is written entirely in
 {{REPLY_LANGUAGE}}. The instructions below name the digest's sections in

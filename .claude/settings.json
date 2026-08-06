@@ -1,5 +1,5 @@
 {
-  "_comment": "Kit-shipped permissions: the WhatsApp MCP tools and the claude.ai Calendar/Gmail connectors are pre-approved so headless runs (scans, commands, shifts) can use them without a human at the terminal. Shell/write tools are deliberately NOT here - they go through allowed_tools in config.json and the approval cards. Applies only after the user accepts the project trust dialog (runbook stage 4b). Personal rule additions land in settings.local.json, never in this file. ask.py and teleport.py are pre-approved: they only message the owner and read local state.",
+  "_comment": "Kit-shipped permissions: the WhatsApp MCP tools and the claude.ai Calendar/Gmail connectors are pre-approved so headless runs (scans, commands, shifts) can use them without a human at the terminal. The only shell entries here are two kit scripts, pinned by exact command prefix (Bash and PowerShell, both slash styles) - ask.py and teleport.py, which only message the owner and read local state; general shell and file-write tools are NOT here, they go through allowed_tools in config.json and the approval cards. Applies only after the user accepts the project trust dialog (runbook stage 4b). Personal rule additions land in settings.local.json, never in this file.",
   "permissions": {
     "allow": [
       "mcp__whatsapp",
