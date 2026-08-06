@@ -65,7 +65,8 @@ DEFAULTS = {
     # Teleport (features.teleport): continuing a desk Claude Code session
     # from WhatsApp. Default off — it widens what the phone can reach to
     # any repo on this machine. See RISKS.md before enabling.
-    "teleport": {"release_word": "release", "idle_minutes": 240},
+    "teleport": {"release_word": "release", "idle_minutes": 240,
+                 "open_at_desk": True},
     # Read-only by default — RISKS.md promises that shell commands and file
     # writes come back as approval cards, and this list is what makes that
     # promise true. Every tool added here runs with NO card. The author runs

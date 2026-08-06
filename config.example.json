@@ -40,7 +40,7 @@
   "allowed_tools": "Read,Glob,Grep",
 
   "_teleport": "phone takeover of desk Claude Code sessions; guarded by the same approval cards AND the target project's own permission rules",
-  "teleport": { "release_word": "release", "idle_minutes": 240 },
+  "teleport": { "release_word": "release", "idle_minutes": 240, "open_at_desk": true },
 
   "schedule": {
     "scan_times": ["08:00", "20:00"]

@@ -113,6 +113,7 @@ try:
     TELEPORT_IDLE_S = float(TELEPORT_CFG.get("idle_minutes", 240)) * 60
 except (TypeError, ValueError):
     TELEPORT_IDLE_S = 240 * 60
+TELEPORT_OPEN_AT_DESK = bool(TELEPORT_CFG.get("open_at_desk", True))
 RELEASE_QUIET = 30.0  # post-release seconds in which the freed channel is
 # ack-only: the teleport turn it was released from is still unwinding, and
 # the resident it would otherwise be steered into is idle.
@@ -1657,6 +1658,29 @@ def service_teleport(tele: dict) -> None:
                  st["source_session_id"], forked)
 
 
+def _open_fork_at_desk(st: dict) -> None:
+    """Best-effort desk hand-back on a release-word exit: pop a terminal
+    already resumed into the fork, in the repo it belongs to — the owner
+    said the word because they are coming back to the desk. The announced
+    one-liner stays the fallback; this must never break the release path.
+    The cwd matters: claude scopes sessions per project directory, so the
+    resume only finds the fork when started from the teleport's cwd."""
+    sid = st.get("forked_session_id", "")
+    cwd = st.get("cwd", "")
+    if not (sid and cwd and os.path.isdir(cwd)):
+        return
+    try:
+        subprocess.Popen(
+            ["cmd", "/c", "start", "Shamash teleport", CLAUDE,
+             "--resume", sid],
+            cwd=cwd,
+        )
+        logging.info("desk terminal opened for fork %s in %s", sid, cwd)
+    except OSError:
+        logging.exception("desk terminal open failed — resume line is in "
+                          "the log")
+
+
 def release_teleport(tele: dict, reason: str) -> None:
     session, st = tele["session"], tele["state"]
     tele["session"], tele["state"] = None, None
@@ -1688,6 +1712,8 @@ def release_teleport(tele: dict, reason: str) -> None:
     # …and the announcement goes out BEFORE the state file is cleared, so a
     # delivery failure leaves the id recoverable on disk instead of erased.
     notify_owner_teleport(channel, strings.t(key, **fmt), st.get("jid"))
+    if reason == "release" and TELEPORT_OPEN_AT_DESK:
+        _open_fork_at_desk(st)
     teleport_mod.clear_state()
 
 
