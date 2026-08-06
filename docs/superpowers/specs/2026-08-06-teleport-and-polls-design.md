@@ -176,8 +176,15 @@ whose accompanying message already is the legend (F1.3).
 
 `channel=None` = `notify.py`'s ordered fallback (contact first, main after).
 A **named** channel means that channel *only* — no fallback. Teleport and
-approvals always name the channel (F1.3, F2.3); this is also what guarantees
-a session picker can never fall through to a shared group chat (F2.7).
+approvals always name the channel (F1.3, F2.3).
+
+Channel-binding alone is NOT what keeps a picker out of a shared chat:
+the main channel's canonical recipient is `group_jid or self_jid`, so a
+channel-bound poll on a group install still lands in the group. For that,
+`ask()` also takes a `jid` override (`jid: str | None = None`) — the
+recipient AND the answer-watch chat both follow it. Teleport's selection
+polls always pass an explicit jid (the trigger conversation's, falling
+back to the owner's self-chat) — never the group (F2.7).
 
 **Input validation, before any POST:** ≤ 12 options; every option truncated
 to 100 chars and the question to 255; duplicate labels after truncation are
