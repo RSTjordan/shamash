@@ -128,7 +128,7 @@
   .install-box{background:var(--night-2);border:1px solid rgba(255,182,89,.5);border-radius:18px;padding:30px;box-shadow:inset 0 0 44px rgba(255,182,89,.05)}
   .install-box ol{margin:16px 0 0;padding-inline-start:22px;display:grid;gap:14px;font-size:1.02rem}
   .install-box ol a{color:var(--flame)}
-  .prompt{background:#070f14;border:1px solid #223138;border-radius:12px;padding:18px;font-family:var(--mono);font-size:.88rem;line-height:1.6;color:#ffd9a8;position:relative;margin-top:12px;white-space:pre-wrap}
+  .prompt{background:#070f14;border:1px solid #223138;border-radius:12px;padding:18px;font-family:var(--mono);font-size:.88rem;line-height:1.6;color:#ffd9a8;position:relative;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}
   .copy-btn{position:absolute;top:10px;right:10px;background:var(--flame);border:none;color:#160f07;font-family:"Assistant",sans-serif;font-weight:700;font-size:.85rem;padding:7px 14px;border-radius:8px;cursor:pointer}
   .copy-btn:hover{background:#ffc985}
   .install-note{margin-top:14px;font-size:.95rem;color:var(--smoke)}
@@ -144,9 +144,12 @@
     .hero{grid-template-columns:1fr;padding-top:12px;gap:26px}
     .hero p.sub{max-width:none}
     .scene{margin-top:26px;margin-bottom:40px}
-    .mascot-peek{width:104px;inset-inline-end:calc(50% + 108px)}
+    .mascot-peek{width:104px;inset-inline-end:calc(50% + 140px);bottom:-18px}
   }
-  @media (max-width:420px){
+  @media (max-width:860px){
+    .prompt{padding-top:48px}
+  }
+  @media (max-width:560px){
     .mascot-peek{display:none}
   }
   @media (prefers-reduced-motion: reduce){
