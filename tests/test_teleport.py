@@ -4,6 +4,7 @@
 Run: py -3 -m unittest tests.test_teleport
 """
 import json
+import os
 import sys
 import tempfile
 import time
@@ -69,6 +70,30 @@ class TestDiscover(unittest.TestCase):
             c = next((x for x in found if x["session_id"] == "ddd-444"), None)
             self.assertIsNotNone(c)
             self.assertEqual(c["cwd"], str(home))
+
+    def test_one_candidate_per_cwd_newest_wins(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = _repo(root, "busy")
+            old = _write_transcript(root, "C--x-busy", "old-111", repo,
+                                    ["first session"])
+            new = _write_transcript(root, "C--x-busy", "new-222", repo,
+                                    ["second session"])
+            t = time.time()
+            os.utime(old, (t - 3600, t - 3600))
+            os.utime(new, (t, t))
+            found = teleport._discover_in(root)
+            ids = [c["session_id"] for c in found]
+            self.assertEqual(ids, ["new-222"])
+
+    def test_subagent_transcripts_excluded(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = _repo(root, "r3")
+            _write_transcript(root, "C--x-r3", "agent-deadbeef", repo,
+                              ["subagent work"])
+            found = teleport._discover_in(root)
+            self.assertEqual(found, [])
 
     def test_summary_line_beats_user_message(self):
         with tempfile.TemporaryDirectory() as td:

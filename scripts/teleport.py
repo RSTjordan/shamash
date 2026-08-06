@@ -131,9 +131,11 @@ def _head_cwd(path):
 
 
 def _discover_in(projects_dir, limit=40):
-    """Candidates newest-first. Excluded: sessions whose cwd is the kit
-    root (the resident/scans/jobs — teleporting the agent into itself is
-    a hall of mirrors). An exclusion, not a whitelist: nothing else is
+    """Candidates newest-first, ONE per cwd (the newest — the picker is a
+    choice between conversations, not between transcript files). Excluded:
+    sessions whose launch cwd is the kit root (the resident/scans/jobs —
+    teleporting the agent into itself is a hall of mirrors) and subagent
+    transcripts (agent-*.jsonl — not resumable sessions). Nothing else is
     filtered."""
     files = []
     try:
@@ -141,6 +143,8 @@ def _discover_in(projects_dir, limit=40):
             if not d.is_dir():
                 continue
             for f in d.glob("*.jsonl"):
+                if f.name.startswith("agent-"):
+                    continue
                 try:
                     files.append((f.stat().st_mtime, f))
                 except OSError:
@@ -149,6 +153,7 @@ def _discover_in(projects_dir, limit=40):
         return []
     files.sort(key=lambda t: t[0], reverse=True)
     out = []
+    seen_cwds = set()
     for mtime, f in files[:limit]:
         entries = _tail_lines(f)
         if not entries:
@@ -166,6 +171,13 @@ def _discover_in(projects_dir, limit=40):
             continue
         if resolved == KIT_ROOT or not resolved.is_dir():
             continue
+        # Newest-first iteration + this guard = one candidate per cwd,
+        # the freshest. Five stale sessions of one repo are noise in a
+        # five-slot picker; an older session of the same repo is the
+        # desk's business.
+        if resolved in seen_cwds:
+            continue
+        seen_cwds.add(resolved)
         out.append({
             "session_id": f.stem,
             "cwd": cwd,
