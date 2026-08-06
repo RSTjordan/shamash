@@ -55,12 +55,17 @@ DEFAULTS = {
         "voice_notes": False,
         "voice_model": "",  # empty = the voice scripts' built-in default
         "approvals": True,
+        "teleport": False,
     },
     # Public default is "manual": every tool call outside the allowlist comes
     # back to the user as an approval card in WhatsApp. "auto" hands the
     # decision to the built-in safety classifier — faster, and a genuinely
     # different trade. See RISKS.md before changing it.
     "permission_mode": "manual",
+    # Teleport (features.teleport): continuing a desk Claude Code session
+    # from WhatsApp. Default off — it widens what the phone can reach to
+    # any repo on this machine. See RISKS.md before enabling.
+    "teleport": {"release_word": "release", "idle_minutes": 240},
     # Read-only by default — RISKS.md promises that shell commands and file
     # writes come back as approval cards, and this list is what makes that
     # promise true. Every tool added here runs with NO card. The author runs

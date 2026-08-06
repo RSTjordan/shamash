@@ -42,6 +42,12 @@ _ENGLISH = {
     "tp_pick_other": "Pick another",
     "tp_cancel": "Cancel",
     "tp_pick_q": "🖥️ Which session?",
+    "tp_enter": "🖥️ Teleported into *{repo}*. Everything you send here goes to that session now. Say *{release}* to come back.",
+    "tp_exit": "🖥️ Released *{repo}*. Resume at the desk with:\n`claude --resume {sid}`",
+    "tp_exit_idle": "🖥️ Released *{repo}* after {mins} minutes of quiet. Resume at the desk with:\n`claude --resume {sid}`",
+    "tp_exit_crash": "🖥️ The *{repo}* session crashed and was released. The transcript survived — resume at the desk with:\n`claude --resume {sid}`",
+    "tp_dropped": "🖥️ A teleport into *{repo}* was pending/active when I restarted — dropped it. Resume at the desk with:\n`claude --resume {sid}`, or teleport again.",
+    "tp_stale_request": "🖥️ Found a teleport request older than {mins} minutes — discarded it. Ask again if you still want it.",
 }
 
 _HEBREW = {
@@ -70,6 +76,12 @@ _HEBREW = {
     "tp_pick_other": "בחר אחר",
     "tp_cancel": "ביטול",
     "tp_pick_q": "🖥️ איזה סשן?",
+    "tp_enter": "🖥️ טלפורט ל-*{repo}*. כל מה שתשלחו כאן עובר עכשיו לסשן הזה. כתבו *{release}* כדי לחזור.",
+    "tp_exit": "🖥️ שוחרר *{repo}*. להמשיך במחשב:\n`claude --resume {sid}`",
+    "tp_exit_idle": "🖥️ שוחרר *{repo}* אחרי {mins} דקות של שקט. להמשיך במחשב:\n`claude --resume {sid}`",
+    "tp_exit_crash": "🖥️ הסשן של *{repo}* קרס ושוחרר. התמליל נשמר — להמשיך במחשב:\n`claude --resume {sid}`",
+    "tp_dropped": "🖥️ טלפורט ל-*{repo}* היה פעיל/ממתין כשעליתי מחדש — בוטל. להמשיך במחשב:\n`claude --resume {sid}`, או לבקש טלפורט שוב.",
+    "tp_stale_request": "🖥️ נמצאה בקשת טלפורט ישנה מ-{mins} דקות — בוטלה. בקשו שוב אם עדיין רלוונטי.",
 }
 
 _TABLES = {"english": _ENGLISH, "hebrew": _HEBREW}
