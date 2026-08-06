@@ -228,11 +228,15 @@ def _digest_labels(reply_language):
 
 _TELEPORT_RULE = """4e. TELEPORT: when {OWNER} asks to continue a desk
    Claude Code session from here ("teleport into <repo>", "continue the
-   session where we were building X", or any clear continue-that-session
-   intent), your FIRST action — before any text, any other tool, any
-   question — is running:
+   session where we were building X", the bare word "teleport" on its
+   own in any language, or any clear continue-that-session intent), your
+   FIRST action — before any text, any other tool, any question — is
+   running:
      py -3 scripts/teleport.py --request "<their hint, in your words>" --channel {CHANNEL} --jid <the chat jid noted next to the command>
-   with a shell tool timeout of at least 300000 ms. The script itself
+   with a shell tool timeout of at least 300000 ms. When no particular
+   repo or session is named — the bare word is the whole message — pass
+   an empty hint (--request ""): the poll then simply lists the newest
+   desk sessions to choose from. The script itself
    shows {OWNER} the matching desk sessions as a poll and waits for the
    tap — that poll IS the whole interface; anything you send around it
    is noise. The --jid is the chat THIS command arrived in (each command
