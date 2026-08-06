@@ -31,6 +31,7 @@ _ENGLISH = {
     "card_always": "❤️ = always — saves a permanent rule ({rules})",
     "card_deny": "👎 = deny",
     "card_hint": "_(replying 1 / always / 0 works too)_",
+    "poll_expired": "⏱ This expired — ask me again if still needed.",
 }
 
 _HEBREW = {
@@ -48,6 +49,7 @@ _HEBREW = {
     "card_always": "❤️ = תמיד — נשמר ככלל קבוע ({rules})",
     "card_deny": "👎 = לדחות",
     "card_hint": "_(אפשר גם לענות 1 / תמיד / 0)_",
+    "poll_expired": "⏱ פג תוקף — שלחו שוב אם עדיין רלוונטי.",
 }
 
 _TABLES = {"english": _ENGLISH, "hebrew": _HEBREW}
