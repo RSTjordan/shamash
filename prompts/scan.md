@@ -104,6 +104,16 @@ scan: {{DIGEST_LABELS}}.
    verified. It returns JSON: the digest counts as sent only when a channel
    reports `"verified": true`. If none did, say so loudly in the run summary
    rather than reporting a successful scan; an HTTP 200 is not a delivery.
+8b. The same rule covers asking: a multi-choice question to {{OWNER_NAME}} —
+   one of a known set of options, not an open-ended one — goes out as a native
+   WhatsApp poll through **scripts/ask.py**, never as "reply 1/2/3" in text
+   and never as a hand-rolled bridge POST:
+     `py -3 scripts/ask.py --option "..." --option "..." "question"`
+   With no `--channel` it lands wherever notify.py would have gone (contact
+   first, group as the fallback). Set your shell tool's timeout to at least
+   300000 ms and wait for the JSON answer ("chosen"). A scan is unattended, so
+   expect no answer: if "chosen" is null, carry on and put the question under
+   "Needs me" in the digest.
 9. ONLY after the digest is sent, overwrite state/last_scan.json with
    {"last_ts":"<timestamp of the newest message you READ in step 2 — across
    ALL chats, including the excluded self-chat/agent group, acted on or

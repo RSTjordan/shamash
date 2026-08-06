@@ -5,7 +5,9 @@
 Why this file exists: a background script that hand-rolls its own bridge POST
 will keep pointing at whatever chat existed when it was written, long after
 the owner has moved to a better one. So: background scripts must NEVER build
-their own send. Call notify() and it goes where the owner actually reads.
+their own send. Call notify() and it goes where the owner actually reads. The
+same rule covers polls: a multi-choice question goes through scripts/ask.py,
+never a hand-rolled /api/poll POST.
 
 Order: the contact channel first when enabled (a separate WhatsApp identity —
 its message is a real incoming bubble with a real push notification), the main
