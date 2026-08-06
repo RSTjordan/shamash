@@ -91,6 +91,18 @@ scan: {{DIGEST_LABELS}}.
      look unresolved (nothing in the new window answers or closes them).
      Max 5, one line each, oldest-first so the stale ones stand out. If
      everything closed, say so in one line.
+7b. ASK BEFORE YOU COMPOSE: step 8's rule has a twin — a multi-choice question
+   to {{OWNER_NAME}}, one of a known set of options and not an open-ended one,
+   goes out as a native WhatsApp poll through **scripts/ask.py**, never as
+   "reply 1/2/3" in text and never as a hand-rolled bridge POST:
+     `py -3 scripts/ask.py --option "..." --option "..." "question"`
+   With no `--channel` it lands wherever notify.py would have gone (contact
+   first, group as the fallback). Set your shell tool's timeout to at least
+   300000 ms and wait for the JSON answer ("chosen"). Any blocking question
+   fires HERE, before the digest is composed — a scan is unattended and will
+   usually get no answer, and only a question asked at this point can still
+   put itself under "Needs me" in the very digest step 8 sends. If "chosen"
+   comes back null, do exactly that and carry on.
 8. Send the digest (format per brief, including the sections from steps 6–7)
    through **scripts/notify.py**, never with send_message and never by
    hand-rolling a bridge POST:
@@ -104,16 +116,6 @@ scan: {{DIGEST_LABELS}}.
    verified. It returns JSON: the digest counts as sent only when a channel
    reports `"verified": true`. If none did, say so loudly in the run summary
    rather than reporting a successful scan; an HTTP 200 is not a delivery.
-8b. The same rule covers asking: a multi-choice question to {{OWNER_NAME}} —
-   one of a known set of options, not an open-ended one — goes out as a native
-   WhatsApp poll through **scripts/ask.py**, never as "reply 1/2/3" in text
-   and never as a hand-rolled bridge POST:
-     `py -3 scripts/ask.py --option "..." --option "..." "question"`
-   With no `--channel` it lands wherever notify.py would have gone (contact
-   first, group as the fallback). Set your shell tool's timeout to at least
-   300000 ms and wait for the JSON answer ("chosen"). A scan is unattended, so
-   expect no answer: if "chosen" is null, carry on and put the question under
-   "Needs me" in the digest.
 9. ONLY after the digest is sent, overwrite state/last_scan.json with
    {"last_ts":"<timestamp of the newest message you READ in step 2 — across
    ALL chats, including the excluded self-chat/agent group, acted on or

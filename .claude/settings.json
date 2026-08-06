@@ -8,7 +8,11 @@
       "Bash(py -3 scripts/ask.py:*)",
       "Bash(py -3 scripts\\ask.py:*)",
       "Bash(py -3 scripts/teleport.py:*)",
-      "Bash(py -3 scripts\\teleport.py:*)"
+      "Bash(py -3 scripts\\teleport.py:*)",
+      "PowerShell(py -3 scripts/ask.py:*)",
+      "PowerShell(py -3 scripts\\ask.py:*)",
+      "PowerShell(py -3 scripts/teleport.py:*)",
+      "PowerShell(py -3 scripts\\teleport.py:*)"
     ]
   }
 }
