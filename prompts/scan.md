@@ -4,8 +4,9 @@ Work from {{PROJECT_ROOT}}. Follow brief/AGENT_BRIEF.md for ALL judgment
 calls. This run is fully autonomous — do not ask questions. The launcher
 passes the current local date/time (timezone {{TIMEZONE}}) in the prompt —
 trust it. The digest goes to {{OWNER_NAME}} and is written entirely in
-{{REPLY_LANGUAGE}} — the section names below are English labels; translate
-them along with everything else.
+{{REPLY_LANGUAGE}}. The instructions below name the digest's sections in
+English; in the digest itself use these exact labels, the same ones every
+scan: {{DIGEST_LABELS}}.
 
 1. HEALTH CHECK: read state/last_scan.json and use its "last_ts" value as the
    window start (if the file is missing entirely, use 24 hours ago). Call the

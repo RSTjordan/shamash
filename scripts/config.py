@@ -191,6 +191,35 @@ def load(required=True):
     return cfg
 
 
+# Fixed digest section labels per reply language. Fixed on purpose: letting the
+# model re-translate the labels each scan makes every digest look different.
+# Languages without a table fall back to a translate-consistently instruction.
+_DIGEST_LABELS = {
+    "he": (
+        "✅ מה נסגר · 📅 נקבע ביומן · ⚠️ צריך אותך · 📧 מיילים · "
+        "ℹ️ מה סונן · 🧰 עבודות רקע · ובבוקר: 📅 היום ביומן · "
+        "⏳ מחכים לך · 🔄 נשאר מאתמול"
+    ),
+    "en": (
+        "✅ Done · 📅 Booked · ⚠️ Needs you · 📧 Mail · "
+        "ℹ️ Noise skipped · 🧰 Jobs · and mornings: 📅 Today's calendar · "
+        "⏳ Waiting on you · 🔄 Carried over"
+    ),
+}
+
+
+def _digest_labels(reply_language):
+    lang = str(reply_language).strip().lower()
+    if lang in ("he", "hebrew", "עברית") or "hebrew" in lang or "עברית" in lang:
+        return _DIGEST_LABELS["he"]
+    if lang in ("en", "english") or "english" in lang:
+        return _DIGEST_LABELS["en"]
+    return (
+        f"translate the English section names into {reply_language} yourself, "
+        "and use the SAME translation every scan"
+    )
+
+
 def placeholders(cfg=None):
     """The token table shared by prompt rendering and the install templates."""
     cfg = cfg or load()
@@ -201,6 +230,7 @@ def placeholders(cfg=None):
         "OWNER_PHONE": str(cfg["owner"]["phone"]),
         "OWNER_LANGUAGE": cfg["owner"]["language"],
         "REPLY_LANGUAGE": cfg["owner"]["reply_language"],
+        "DIGEST_LABELS": _digest_labels(cfg["owner"]["reply_language"]),
         "TIMEZONE": cfg["owner"]["timezone"],
         "SELF_JID": cfg["self_jid"],
         "GROUP_JID": main.get("group_jid", ""),
