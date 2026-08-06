@@ -73,6 +73,18 @@ def _clamp_selectable(n, option_count):
     return n
 
 
+def _classify_vote(body, options):
+    """A vote's content is the chosen labels joined with ", " — but a label
+    may itself contain ", ", so an exact match against the options the poll
+    was actually sent with (the PREPARED list: what the bridge hashed, and
+    so what comes back) wins before any splitting. Empty content is a
+    CLEARED vote, not an answer: None."""
+    body = (body or "").strip()
+    if not body:
+        return None
+    return body if body in options else body.split(", ")[0]
+
+
 def _strip_vs(emoji):
     return (emoji or "").replace("\ufe0f", "")
 
@@ -321,9 +333,10 @@ def ask(question, options, timeout=900.0, selectable_count=1, channel=None,
                 if mid in consumed:
                     continue
                 if kind == "vote":
-                    if not body:
+                    label = _classify_vote(body, options)
+                    if label is None:
                         continue  # cleared vote — ignored by design
-                    chosen, answered_by = body.split(", ")[0], "poll"
+                    chosen, answered_by = label, "poll"
                 elif kind == "reaction":
                     label = _classify_reaction(body, reaction_aliases)
                     if label is None:

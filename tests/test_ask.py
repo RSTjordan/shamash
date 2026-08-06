@@ -36,6 +36,28 @@ class TestPrepareOptions(unittest.TestCase):
         self.assertEqual(ask._clamp_selectable(2, 3), 2)
 
 
+class TestClassifyVote(unittest.TestCase):
+    # The PREPARED options — what the poll was sent with, so what the bridge
+    # hashed and what a vote's content comes back as.
+    OPTIONS = ["Yes, continue", "Stop"]
+
+    def test_label_containing_comma_space_round_trips(self):
+        # The bridge joins selected labels with ", ", so a naive split would
+        # truncate this to "Yes" — a label no caller can match.
+        self.assertEqual(ask._classify_vote("Yes, continue", self.OPTIONS),
+                         "Yes, continue")
+
+    def test_plain_label(self):
+        self.assertEqual(ask._classify_vote("Stop", self.OPTIONS), "Stop")
+
+    def test_multi_select_takes_the_first_label(self):
+        self.assertEqual(ask._classify_vote("Stop, Yes, continue", self.OPTIONS),
+                         "Stop")
+
+    def test_cleared_vote_is_none(self):
+        self.assertIsNone(ask._classify_vote("", self.OPTIONS))
+
+
 class TestClassifyText(unittest.TestCase):
     OPTIONS = ["Continue", "Pick another", "Cancel"]
 
