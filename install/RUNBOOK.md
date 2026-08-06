@@ -325,7 +325,8 @@ $action = New-ScheduledTaskAction -Execute "wscript.exe" `
   -WorkingDirectory $root
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 # (-User is required: an unelevated Register-ScheduledTask rejects a
-# user-less logon trigger with "Access is denied".)
+# user-less logon trigger with "Access is denied". On a domain account,
+# use "DOMAIN\username" instead of the bare name.)
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew `
   -StartWhenAvailable -RestartCount 10 `
@@ -368,6 +369,14 @@ job is an edit to that file, never another Windows task:
 
 (The scan times above are the defaults — write the ones they chose in
 stage 6.)
+
+One rule the scheduler enforces silently: any entry with `every_days`
+greater than 1 MUST also carry an `"anchor": "YYYY-MM-DD"` date (the day
+the cadence counts from). Without it the scheduler skips the entry on
+every tick without logging an error, and doctor's schedule check —
+which validates only name/command/cadence shape — will still report the
+file as well-formed. Daily (`every_days: 1`) and `every_minutes` entries
+need no anchor.
 
 Then start each task once with `schtasks /Run /TN <name>` and confirm with
 `scripts\doctor.cmd` that every task is registered and both bridges answer

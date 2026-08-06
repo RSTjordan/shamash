@@ -60,7 +60,11 @@ Defects found by the install, all fixed and pushed:
   doctor.cmd on checkouts where git didn't convert. `.gitattributes` now
   forces CRLF for both extensions, and their comments are ASCII-only.
 - Scan scheduling: the runbook's schedule.json needs an `anchor` date for
-  any `every_days > 1` entry (a missing anchor silently skips the entry).
+  any `every_days > 1` entry (a missing anchor silently skips the entry) —
+  the runbook now documents the rule next to its schedule.json example.
+- `update.cmd` rewrote itself mid-pull: cmd re-reads a running batch file
+  by byte offset, so the `git pull` inside it corrupted the parse of its
+  own remaining lines. Its tail is now a single parsed-before-run line.
 
 ## Not done — the honest list before anyone installs this
 
