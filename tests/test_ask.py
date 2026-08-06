@@ -97,6 +97,16 @@ class TestClassifyReaction(unittest.TestCase):
         self.assertIsNone(ask._classify_reaction("👍", None))
 
 
+class TestScanSince(unittest.TestCase):
+    def test_explicit_origin_wins(self):
+        # approvals' card goes out before the poll; verifying the poll row
+        # costs up to ~12s, and an answer in that window must still be seen.
+        self.assertEqual(ask._scan_since(1000.0, 1012.0), 999.0)
+
+    def test_falls_back_to_the_send_time(self):
+        self.assertEqual(ask._scan_since(None, 1012.0), 1011.0)
+
+
 class TestCapability(unittest.TestCase):
     def test_missing_file_is_optimistic(self):
         self.assertTrue(ask._poll_capable("contact", surfaces={}))

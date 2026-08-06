@@ -240,6 +240,11 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT,
         }
     channel = next(c for c in notify.CHANNELS if c["name"] == delivered["channel"])
     card_id = delivered["id"]
+    # The answer window opens with the CARD, not with the poll: posting and
+    # verifying the poll row costs up to ~12s, and a 👍 tapped on the card in
+    # that window must not fall before ask()'s scan origin — degraded-poll is
+    # exactly when the card reaction is the only answer form left.
+    card_sent = time.time()
     _card_opened(channel["name"])
     started = time.time()
     # The card above is the legend; the poll is the tap surface. The legacy
@@ -261,6 +266,7 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT,
             text_aliases={once_l: ONCE, always_l: ALWAYS, deny_l: DENY},
             reaction_aliases={once_l: REACT_ONCE, always_l: REACT_ALWAYS,
                               deny_l: REACT_DENY},
+            since=card_sent,
         )
     finally:
         _card_closed(channel["name"])

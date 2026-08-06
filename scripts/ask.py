@@ -275,10 +275,25 @@ def _answer_rows(channel, since_epoch, watch_ids):
     return out
 
 
+def _scan_since(explicit, started):
+    """The epoch answers are scanned from, with 1s of DB-resolution slack.
+
+    Default is ask()'s own send time. A caller whose accompanying message
+    went out BEFORE the poll passes its send time instead — see ask()."""
+    return (explicit if explicit is not None else started) - 1
+
+
 def ask(question, options, timeout=900.0, selectable_count=1, channel=None,
         also_watch_ids=(), text_fallback=True, text_aliases=None,
-        reaction_aliases=None):
-    """Send a poll and wait for the answer. See module docstring."""
+        reaction_aliases=None, since=None):
+    """Send a poll and wait for the answer. See module docstring.
+
+    `since` is the epoch to scan answers from; by default that is the moment
+    the poll went out. Callers whose accompanying message went out BEFORE the
+    poll (approvals' card, which is watched through `also_watch_ids`) pass
+    their own send time — posting and verifying the poll row costs up to ~12s,
+    and an answer landing in that window would otherwise fall before the scan
+    origin and be permanently invisible."""
     question = str(question).strip()[:QUESTION_MAX]
     options = _prepare_options(options)
     selectable_count = _clamp_selectable(selectable_count, len(options))
@@ -320,8 +335,8 @@ def ask(question, options, timeout=900.0, selectable_count=1, channel=None,
     watch_ids = set(also_watch_ids)
     if poll_id:
         watch_ids.add(poll_id)
-    started = time.time()
-    since = started - 1  # 1s DB-resolution slack, same as approvals
+    started = time.time()  # the timeout clock — always from here
+    since = _scan_since(since, started)
     chosen = None
     answered_by = None
     consumed = []
