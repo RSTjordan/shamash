@@ -49,6 +49,27 @@ class TestDiscover(unittest.TestCase):
             self.assertEqual(c["repo"], "myrepo")
             self.assertIn("login", c["description"])
 
+    def test_launch_cwd_governs_not_tail_cwd(self):
+        """A desk session whose recent commands ran inside the kit root is
+        still a candidate: the head's launch cwd is its identity, not
+        wherever its shell wandered last (observed live — the owner's
+        active session vanished from the picker after deploying the kit)."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            home = _repo(root, "wanderer")
+            f = _write_transcript(root, "C--x-wanderer", "ddd-444",
+                                  home, ["start here"])
+            with f.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps({"cwd": str(teleport.KIT_ROOT),
+                                     "type": "user",
+                                     "message": {"role": "user",
+                                                 "content": "cd'd into kit"}})
+                         + "\n")
+            found = teleport._discover_in(root)
+            c = next((x for x in found if x["session_id"] == "ddd-444"), None)
+            self.assertIsNotNone(c)
+            self.assertEqual(c["cwd"], str(home))
+
     def test_summary_line_beats_user_message(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

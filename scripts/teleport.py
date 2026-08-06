@@ -106,6 +106,30 @@ def _cwd_of(entries):
     return ""
 
 
+def _head_cwd(path):
+    """The session's LAUNCH cwd, from the transcript's first entries — the
+    identity `claude --resume` keys on. The tail's cwd is wherever the
+    session's shell wandered last: a real desk session whose recent
+    commands ran inside the kit root would vanish behind the kit-root
+    exclusion (observed live — the owner's active desk session was
+    invisible to the picker because it had just been deploying the kit)."""
+    try:
+        with path.open(encoding="utf-8", errors="replace") as fh:
+            for _ in range(50):
+                line = fh.readline()
+                if not line:
+                    break
+                try:
+                    e = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(e, dict) and e.get("cwd"):
+                    return str(e["cwd"])
+    except OSError:
+        pass
+    return ""
+
+
 def _discover_in(projects_dir, limit=40):
     """Candidates newest-first. Excluded: sessions whose cwd is the kit
     root (the resident/scans/jobs — teleporting the agent into itself is
@@ -129,7 +153,7 @@ def _discover_in(projects_dir, limit=40):
         entries = _tail_lines(f)
         if not entries:
             continue
-        cwd = _cwd_of(entries)
+        cwd = _head_cwd(f) or _cwd_of(entries)
         if not cwd:
             continue
         # A cwd that no longer resolves to a directory is an unspawnable
