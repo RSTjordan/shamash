@@ -4,7 +4,7 @@ Honest state of the kit, updated whenever work lands. If this file and the
 runbook disagree, this file is right: the runbook describes the finished
 product, this one describes what actually exists on disk.
 
-Last updated: 2026-08-06 (survived its first real installation).
+Last updated: 2026-08-06 (teleport + polls shipped).
 
 ## Done
 
@@ -28,6 +28,15 @@ Last updated: 2026-08-06 (survived its first real installation).
   launchers + run-hidden.vbs, doctor / update / uninstall.
 - `prompts/`: generic scan.md, command.md, command-followup.md, job-shift.md —
   rendered from config at runtime, verified to leave no unfilled tokens.
+- Teleport + polls (2026-08-06): `scripts/ask.py` — WhatsApp-native polls as
+  the kit's multi-choice UI, with approvals answering by poll tap
+  (`patches/bridge-polls.md` adds the endpoints; numbered-text fallback per
+  channel via `state/poll-surfaces.json`); `scripts/teleport.py` + watcher
+  takeover — continue a desk Claude Code session from the phone, opt-in and
+  off by default (`features.teleport`). Every task independently reviewed, a
+  whole-branch review on top, and an 11-step end-to-end smoke on the
+  author's live install (real votes, reaction approval, expiry, full
+  teleport enter/steer/release with desk lineage, restart drop) — all green.
 
 ## Reviewed
 
