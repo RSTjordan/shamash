@@ -1,12 +1,12 @@
 @echo off
-rem Contact-channel WhatsApp bridge — the agent's own number, a second bridge
+rem Contact-channel WhatsApp bridge -- the agent's own number, a second bridge
 rem instance with its own store, token and port. Started at logon by the
 rem ShamashContactBridge scheduled task via run-hidden.vbs. Only registered
 rem when channels.contact.enabled is true (stage 6b of the runbook).
 set "ROOT=%~dp0.."
 for %%I in ("%ROOT%") do set "ROOT=%%~fI"
 
-rem The port lives in config.json (channels.contact.bridge_port) — the single
+rem The port lives in config.json (channels.contact.bridge_port) -- the single
 rem source of truth. Ask config.py rather than hardcode; fall back to the
 rem kit default (8081) if config can't be read (e.g. mid-install).
 set "PORT="
@@ -14,7 +14,7 @@ for /f "usebackq delims=" %%p in (`py -3 -c "import sys; sys.path.insert(0, r'%R
 if not defined PORT set "PORT=8081"
 set "WHATSAPP_BRIDGE_PORT=%PORT%"
 
-rem No webhook consumer exists in this kit — disable it.
+rem No webhook consumer exists in this kit -- disable it.
 set "WEBHOOK_URL="
 
 if not exist "%ROOT%\logs" mkdir "%ROOT%\logs"
@@ -27,4 +27,6 @@ for %%A in ("%LOG%") do if %%~zA GTR 20000000 (
 )
 
 cd /d "%ROOT%\bridge\contact-bridge"
-whatsapp-bridge.exe >> "%LOG%" 2>&1
+rem Explicit .\ path: with NoDefaultCurrentDirectoryInExePath=1 set, cmd no
+rem longer finds bare exe names in the current directory.
+.\whatsapp-bridge.exe >> "%LOG%" 2>&1

@@ -1,5 +1,5 @@
 @echo off
-REM One scheduled scan — fired at the times in config.json (schedule.scan_times)
+REM One scheduled scan -- fired at the times in config.json (schedule.scan_times)
 REM by the generic scheduler (state\schedule.json -> ShamashScheduler task).
 REM All logic lives in scripts\run_scan.py; this wrapper only sets encoding,
 REM appends the log, and raises a WhatsApp note if the scan died.

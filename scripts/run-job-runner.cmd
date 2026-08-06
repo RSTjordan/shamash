@@ -1,5 +1,5 @@
 @echo off
-REM One job-runner tick — run periodically via the generic scheduler
+REM One job-runner tick -- run periodically via the generic scheduler
 REM (state\schedule.json). At most ONE work-shift runs per tick; no runnable
 REM job means a heartbeat line and instant exit. The runner does its own
 REM logging (logs\jobs.log) and failure notifications; this launcher log only

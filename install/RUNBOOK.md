@@ -323,7 +323,9 @@ $root = "C:\path\to\shamash"   # substitute the real path
 $action = New-ScheduledTaskAction -Execute "wscript.exe" `
   -Argument "`"$root\scripts\run-hidden.vbs`" `"$root\scripts\start-bridge.cmd`"" `
   -WorkingDirectory $root
-$trigger = New-ScheduledTaskTrigger -AtLogOn
+$trigger = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
+# (-User is required: an unelevated Register-ScheduledTask rejects a
+# user-less logon trigger with "Access is denied".)
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries `
   -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew `
   -StartWhenAvailable -RestartCount 10 `
@@ -341,10 +343,13 @@ Differences for the other rows:
 $action = New-ScheduledTaskAction -Execute (Get-Command pyw.exe).Source `
   -Argument "-3 `"$root\scripts\watcher.py`"" -WorkingDirectory $root
 
-# ShamashScheduler — repeating trigger and a real time limit:
+# ShamashScheduler — repeating trigger and a real time limit. Do NOT use
+# [TimeSpan]::MaxValue for the duration: the resulting XML is rejected at
+# registration ("The task XML contains a value which is incorrectly
+# formatted or out of range"). Ten years is effectively forever:
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date) `
   -RepetitionInterval (New-TimeSpan -Minutes 5) `
-  -RepetitionDuration ([TimeSpan]::MaxValue)
+  -RepetitionDuration (New-TimeSpan -Days 3650)
 # ...and in its settings set: -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
 ```
 

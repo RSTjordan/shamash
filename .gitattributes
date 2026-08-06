@@ -1,0 +1,5 @@
+# cmd.exe and wscript require CRLF - an LF-only batch file is misparsed
+# (lines bleed into each other; doctor.cmd's REM once executed as 'M').
+# Force CRLF in every checkout regardless of core.autocrlf.
+*.cmd text eol=crlf
+*.vbs text eol=crlf

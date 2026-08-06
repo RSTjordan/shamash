@@ -2,7 +2,7 @@
 setlocal
 REM Removes the Shamash background machinery: the four scheduled tasks and
 REM any still-running processes started from this folder. It deletes NO data
-REM — what stays, and how to remove it by hand, is printed at the end.
+REM -- what stays, and how to remove it by hand, is printed at the end.
 set "ROOT=%~dp0.."
 for %%I in ("%ROOT%") do set "ROOT=%%~fI"
 
@@ -43,7 +43,7 @@ echo.
 echo   %ROOT%
 echo       The kit itself, plus your config.json and install\install.log.
 echo   %ROOT%\brief
-echo       Everything you taught it — plain text, worth a read before you bin it.
+echo       Everything you taught it -- plain text, worth a read before you bin it.
 echo   %ROOT%\bridge\whatsapp-bridge\store  (and ...\contact-bridge\store)
 echo       Your WhatsApp message history IN THE CLEAR, and the pairing.
 echo   %USERPROFILE%\.local\share\whatsapp-mcp\outbox
@@ -57,5 +57,5 @@ echo   2. Delete the folder %ROOT%
 echo   3. Delete %USERPROFILE%\.local\share\whatsapp-mcp
 echo.
 echo The installed dependencies (git, go, python, ffmpeg) are shared tools and
-echo were left alone — remove them with winget only if nothing else uses them.
+echo were left alone -- remove them with winget only if nothing else uses them.
 endlocal

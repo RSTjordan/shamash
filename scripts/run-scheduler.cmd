@@ -1,5 +1,5 @@
 @echo off
-REM One scheduler tick — fired every 5 minutes by the ShamashScheduler task
+REM One scheduler tick -- fired every 5 minutes by the ShamashScheduler task
 REM (via run-hidden.vbs). Runs whatever is due in state\schedule.json. Keep
 REM this wrapper trivial: all logic lives in scripts\scheduler.py, which does
 REM its own logging (logs\scheduler.log); this launcher log only catches
