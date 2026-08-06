@@ -592,9 +592,12 @@ Code in any project on this machine, guarded by the same approval cards —
   session.
 - The teleported runner inherits nothing from the kit's brief — no owner
   data beyond what the target session already had.
-- Session-picker polls are channel-bound (F1.2's named-channel rule) and so
-  can never land in a shared group chat — the candidate list names every
-  repo on the machine and belongs in owner-only chats.
+- Session-picker polls are pinned to an explicit chat via `ask()`'s `jid`
+  override (F1.2) — by default the owner's self-chat, or the conversation
+  the trigger arrived in. The candidate list names every repo on the
+  machine and belongs in owner-only chats; the one way it can appear in a
+  group is the owner explicitly asking for a teleport *from* that group
+  (announcements-follow-the-conversation), never as a channel default.
 - Known quirk, accepted: `approvals.auto_ok`'s in-project-read check is
   anchored to the kit root, so in `permission_mode: "auto"` a teleported
   session's project reads may raise cards a kit session wouldn't. Noisy,
