@@ -154,7 +154,12 @@ sending it *waits for the answer*.
 ```python
 ask(question: str, options: list[str], timeout: float = 900.0,
     selectable_count: int = 1, channel: str | None = None,
-    also_watch_ids: list[str] = (), text_fallback: bool = True) -> dict
+    also_watch_ids: list[str] = (), text_fallback: bool = True,
+    since: float | None = None) -> dict
+# since: epoch to scan answers from (default: ask()'s own send time).
+# Callers whose accompanying message went out BEFORE the poll (approvals'
+# card) pass their send time — otherwise an answer landing while the poll
+# is still verifying (up to ~12s) is permanently invisible.
 # returns {"chosen": "<option label>" | None,   # None = timeout
 #          "answered_by": "poll" | "reaction" | "text" | None,
 #          "channel": "contact" | "main" | None,
