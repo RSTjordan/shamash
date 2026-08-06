@@ -15,8 +15,10 @@ The handoff: the resident agent runs `--request "<hint>" --channel X
 writes state/teleport.json with phase="requested" carrying that jid — the
 chat every announcement about this teleport is addressed to. The
 watcher's main loop notices it between turns, spawns the runner, and
-flips routing. A request older than REQUEST_TTL is discarded — a watcher
-that was down must not fire a teleport the owner confirmed an hour ago.
+flips routing. A request older than REQUEST_TTL is discarded, which bounds
+the wait when the channel's bridge is down; a watcher that was down drops
+the request at startup instead (with an announcement), so this TTL never
+has to be tight enough to fight the creating turn's own duration.
 """
 import argparse
 import json
@@ -32,7 +34,15 @@ CFG = config.load()
 KIT_ROOT = pathlib.Path(CFG["root"]).resolve()
 STATE_FILE = CFG["paths"]["state"] / "teleport.json"
 PROJECTS_DIR = pathlib.Path.home() / ".claude" / "projects"
-REQUEST_TTL = 120.0
+REQUEST_TTL = 900.0  # must outlive the turn that WRITES the request: the
+# watcher only services requests between turns, so the creating turn has to
+# end first — and that turn can legitimately sit for approvals.APPROVAL_TIMEOUT
+# (900s) on a single card. A tighter TTL throws away a teleport the owner
+# already confirmed by poll, which is what a 120s value did on a live install
+# whenever the agent hit one approval card after calling this module. Staleness
+# from a watcher that was DOWN is not this constant's job — the watcher clears
+# and announces any state file it finds at startup; what remains here is the
+# bound on the bridge-down deferral in service_teleport.
 TAIL_BYTES = 64 * 1024
 OPEN_AT_DESK_S = 600  # transcript touched this recently = "looks open"
 DESC_MAX = 60
