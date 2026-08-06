@@ -19,6 +19,25 @@ the option→hash map — that is the `polls` table. Whoever truncates a
 label must truncate before hashing; the bridge hashes exactly the
 bytes it receives in the request.
 
+## Who enforces WhatsApp's limits
+
+Split deliberately, and the split is what keeps the hashes matching:
+
+- **The kit truncates, before the POST.** `scripts/ask.py` cuts the
+  question to **255** chars and every option to **100**, and if two
+  labels collide after that cut it renumbers them all (`1) …`, `2) …`)
+  — two identical labels hash identically and a vote for either would
+  be indistinguishable. It also clamps `selectable_count` into
+  `[1, len(options)]`.
+- **The bridge validates, and rejects.** The handler below 400s a
+  request with no recipient, no question, or fewer than 1 / more than
+  **12** options. It truncates nothing: silently shortening a label
+  here would hash bytes the caller never chose, and the caller's own
+  equality checks against its option list would then fail.
+
+So a caller that hand-rolls a poll POST can be rejected outright; the
+kit's own path never hits the limits, because it has already cut.
+
 The whatsmeow API used (quote of the vendored signatures — verify they
 match your clone's vendored `go.mau.fi/whatsmeow/msgsecret.go` before
 building, and adapt if the upstream signature drifted):

@@ -119,7 +119,11 @@ text (a poll row carries no channel header, unlike `notify._verify`'s
 WhatsApp limits: question ≤ 255 chars, ≤ 12 options, option ≤ 100 chars.
 **`ask.py` truncates and validates *before* posting** (F1.2); the bridge
 hashes exactly the bytes it is given, so both sides always agree on the
-option hashes. The bridge still defensively truncates rather than erroring.
+option hashes. The division of labour is truncate-kit-side, validate-
+bridge-side: the shipped handler rejects a bad request (no recipient, no
+question, 0 or more than 12 options) with a 400 and truncates nothing —
+anything longer than WhatsApp accepts was already cut by `ask.py` before
+the POST, which is the only way the hashes can match.
 
 **(b) Poll-vote decryption.** WhatsApp encrypts poll votes with the poll
 message's key, and votes arrive as option *hashes* (SHA-256 of the option
@@ -155,7 +159,14 @@ sending it *waits for the answer*.
 ask(question: str, options: list[str], timeout: float = 900.0,
     selectable_count: int = 1, channel: str | None = None,
     also_watch_ids: list[str] = (), text_fallback: bool = True,
-    since: float | None = None) -> dict
+    text_aliases: dict[str, set[str]] | None = None,
+    reaction_aliases: dict[str, set[str]] | None = None,
+    since: float | None = None, jid: str | None = None) -> dict
+# text_aliases / reaction_aliases: per-option keyword and emoji sets, so a
+# caller's legacy answer forms (approvals' 1/always/0 and 👍/❤️/👎) keep
+# their meaning regardless of the poll's option order. Without them a bare
+# reaction means nothing — a generic picker must not be answered by a 👍.
+# jid: pin the question to ONE chat (see below).
 # since: epoch to scan answers from (default: ask()'s own send time).
 # Callers whose accompanying message went out BEFORE the poll (approvals'
 # card) pass their send time — otherwise an answer landing while the poll
