@@ -31,3 +31,6 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+
+# Implementation plans carry machine-specific paths; specs are the public record
+docs/superpowers/plans/

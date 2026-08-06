@@ -55,12 +55,17 @@ DEFAULTS = {
         "voice_notes": False,
         "voice_model": "",  # empty = the voice scripts' built-in default
         "approvals": True,
+        "teleport": False,
     },
     # Public default is "manual": every tool call outside the allowlist comes
     # back to the user as an approval card in WhatsApp. "auto" hands the
     # decision to the built-in safety classifier — faster, and a genuinely
     # different trade. See RISKS.md before changing it.
     "permission_mode": "manual",
+    # Teleport (features.teleport): continuing a desk Claude Code session
+    # from WhatsApp. Default off — it widens what the phone can reach to
+    # any repo on this machine. See RISKS.md before enabling.
+    "teleport": {"release_word": "release", "idle_minutes": 240},
     # Read-only by default — RISKS.md promises that shell commands and file
     # writes come back as approval cards, and this list is what makes that
     # promise true. Every tool added here runs with NO card. The author runs
@@ -220,6 +225,31 @@ def _digest_labels(reply_language):
     )
 
 
+_TELEPORT_RULE = """4e. TELEPORT: when {OWNER} asks to continue a desk
+   Claude Code session from here ("teleport into <repo>", "continue the
+   session where we were building X", or any clear continue-that-session
+   intent), run:
+     py -3 scripts/teleport.py --request "<their hint, in your words>" --channel {CHANNEL} --jid <the chat jid noted next to the command>
+   with a shell tool timeout of at least 300000 ms. The --jid is the chat
+   THIS command arrived in (each command line above names it, "in chat
+   ...") — every announcement about the teleport is sent there, so it must
+   not be guessed. It confirms the choice
+   with {OWNER} via a poll and prints JSON. If "requested" is true,
+   reply only that the teleport is starting — the system announces the rest.
+   If false, relay the "reason" plainly."""
+
+
+def _teleport_rule(cfg):
+    """The teleport prompt rule exists only on installs that enabled the
+    feature — on the rest the agent must not know to offer it. The owner
+    name is substituted HERE, not via a {{TOKEN}}: render() does one
+    .replace per placeholder over the same string, so a {{TOKEN}} injected
+    by an earlier substitution is never itself rendered."""
+    if not cfg.get("features", {}).get("teleport"):
+        return ""
+    return _TELEPORT_RULE.replace("{OWNER}", cfg["owner"]["name"])
+
+
 def placeholders(cfg=None):
     """The token table shared by prompt rendering and the install templates."""
     cfg = cfg or load()
@@ -231,6 +261,7 @@ def placeholders(cfg=None):
         "OWNER_LANGUAGE": cfg["owner"]["language"],
         "REPLY_LANGUAGE": cfg["owner"]["reply_language"],
         "DIGEST_LABELS": _digest_labels(cfg["owner"]["reply_language"]),
+        "TELEPORT_RULE": _teleport_rule(cfg),
         "TIMEZONE": cfg["owner"]["timezone"],
         "SELF_JID": cfg["self_jid"],
         "GROUP_JID": main.get("group_jid", ""),

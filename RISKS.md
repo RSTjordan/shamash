@@ -36,6 +36,21 @@ The brakes, exactly as they are:
   cards for Claude's built-in safety classifier — faster, and a genuinely
   different trade. Make either change knowing exactly what you removed.
 
+## 1b. Teleport reaches every project on this machine (if you enable it)
+
+Teleport (off by default) lets your WhatsApp continue any Claude Code
+session on this computer — not just this kit's own world. Actions in the
+teleported session are guarded by the same approval cards AND by whatever
+permission rules that project already has: a broad rule you once approved
+at the desk in some repo is phone-reachable with that rule intact, and
+the `allowed_tools` baseline you chose applies in every teleported repo
+too. Two scripts are pre-approved to run without cards — `scripts/ask.py`
+and `scripts/teleport.py` — since they only message you and read local
+state. That pre-approval lives in the kit's own `.claude/settings.json`,
+so it does not ride along: in a teleported repo they stop for a card
+like anything else, and an ❤️ there saves the rule into *that* repo's
+`.claude/settings.local.json`, not the kit's.
+
 ## 2. Your WhatsApp history ends up in local files, unencrypted
 
 The bridge syncs your messages into a SQLite database on your disk — anyone

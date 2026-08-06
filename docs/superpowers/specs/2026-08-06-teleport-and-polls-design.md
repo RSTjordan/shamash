@@ -119,7 +119,11 @@ text (a poll row carries no channel header, unlike `notify._verify`'s
 WhatsApp limits: question ≤ 255 chars, ≤ 12 options, option ≤ 100 chars.
 **`ask.py` truncates and validates *before* posting** (F1.2); the bridge
 hashes exactly the bytes it is given, so both sides always agree on the
-option hashes. The bridge still defensively truncates rather than erroring.
+option hashes. The division of labour is truncate-kit-side, validate-
+bridge-side: the shipped handler rejects a bad request (no recipient, no
+question, 0 or more than 12 options) with a 400 and truncates nothing —
+anything longer than WhatsApp accepts was already cut by `ask.py` before
+the POST, which is the only way the hashes can match.
 
 **(b) Poll-vote decryption.** WhatsApp encrypts poll votes with the poll
 message's key, and votes arrive as option *hashes* (SHA-256 of the option
@@ -154,7 +158,19 @@ sending it *waits for the answer*.
 ```python
 ask(question: str, options: list[str], timeout: float = 900.0,
     selectable_count: int = 1, channel: str | None = None,
-    also_watch_ids: list[str] = (), text_fallback: bool = True) -> dict
+    also_watch_ids: list[str] = (), text_fallback: bool = True,
+    text_aliases: dict[str, set[str]] | None = None,
+    reaction_aliases: dict[str, set[str]] | None = None,
+    since: float | None = None, jid: str | None = None) -> dict
+# text_aliases / reaction_aliases: per-option keyword and emoji sets, so a
+# caller's legacy answer forms (approvals' 1/always/0 and 👍/❤️/👎) keep
+# their meaning regardless of the poll's option order. Without them a bare
+# reaction means nothing — a generic picker must not be answered by a 👍.
+# jid: pin the question to ONE chat (see below).
+# since: epoch to scan answers from (default: ask()'s own send time).
+# Callers whose accompanying message went out BEFORE the poll (approvals'
+# card) pass their send time — otherwise an answer landing while the poll
+# is still verifying (up to ~12s) is permanently invisible.
 # returns {"chosen": "<option label>" | None,   # None = timeout
 #          "answered_by": "poll" | "reaction" | "text" | None,
 #          "channel": "contact" | "main" | None,
@@ -171,8 +187,15 @@ whose accompanying message already is the legend (F1.3).
 
 `channel=None` = `notify.py`'s ordered fallback (contact first, main after).
 A **named** channel means that channel *only* — no fallback. Teleport and
-approvals always name the channel (F1.3, F2.3); this is also what guarantees
-a session picker can never fall through to a shared group chat (F2.7).
+approvals always name the channel (F1.3, F2.3).
+
+Channel-binding alone is NOT what keeps a picker out of a shared chat:
+the main channel's canonical recipient is `group_jid or self_jid`, so a
+channel-bound poll on a group install still lands in the group. For that,
+`ask()` also takes a `jid` override (`jid: str | None = None`) — the
+recipient AND the answer-watch chat both follow it. Teleport's selection
+polls always pass an explicit jid (the trigger conversation's, falling
+back to the owner's self-chat) — never the group (F2.7).
 
 **Input validation, before any POST:** ≤ 12 options; every option truncated
 to 100 chars and the question to 255; duplicate labels after truncation are
@@ -403,6 +426,12 @@ the runner itself — the watcher owns both. The mechanism:
   candidates, one numbered option per session
   ("1) <repo> · <age> · <description>", ≤ 100 chars — numbering guarantees
   label uniqueness, which the vote hashes require), plus a *Cancel* option.
+  A candidate that looks open at the desk carries a **⚠️ marker inside its
+  own label** ("1) <repo> · <age> ⚠️ · <description>") and the poll question
+  explains what the marker means. The fork warning of F2.2 is load-bearing
+  at the moment of choice, and in practice the picker — not the
+  single-candidate confirm — is the surface the owner actually answers on,
+  so the warning has to live in both.
 
 ## F2.4 The teleported runner — mode takeover
 
@@ -523,10 +552,24 @@ written atomically on every transition and deleted on release:
 ```json
 {"phase": "requested" | "active",
  "channel": "contact" | "main",
+ "jid": "<the conversation's chat JID — where announcements go>",
  "source_session_id": "...", "forked_session_id": "...",
  "cwd": "...", "repo": "...",
  "requested_at": "...", "started": "...", "last_activity": "..."}
 ```
+
+The `jid` exists because announcements must land in the SAME chat as the
+conversation (on a main install `chat_jids[0]` is the group — the exit
+one-liner must never land there while the conversation runs in the
+self-chat). The trigger rule passes it (`--jid`, from the command
+envelope's chat notation); empty falls back to the owner's self-chat,
+never the group. Each routed batch refreshes it to the live
+conversation's chat. If that send fails or comes back unconfirmed, the
+announcement is retried on the **other channel's bridge**, addressed to the
+owner's own JID (the main channel's self-chat, the contact channel's 1:1) —
+never to a channel default, because that default is the group; and if no
+bridge takes it, the announcement stays log-only, which is why the resume
+one-liner goes to the log first and unconditionally.
 
 `teleport.py` writes the `requested` phase (with `forked_session_id` empty);
 the watcher fills the rest when it takes over. A watcher restart while a
@@ -571,9 +614,12 @@ Code in any project on this machine, guarded by the same approval cards —
   session.
 - The teleported runner inherits nothing from the kit's brief — no owner
   data beyond what the target session already had.
-- Session-picker polls are channel-bound (F1.2's named-channel rule) and so
-  can never land in a shared group chat — the candidate list names every
-  repo on the machine and belongs in owner-only chats.
+- Session-picker polls are pinned to an explicit chat via `ask()`'s `jid`
+  override (F1.2) — by default the owner's self-chat, or the conversation
+  the trigger arrived in. The candidate list names every repo on the
+  machine and belongs in owner-only chats; the one way it can appear in a
+  group is the owner explicitly asking for a teleport *from* that group
+  (announcements-follow-the-conversation), never as a channel default.
 - Known quirk, accepted: `approvals.auto_ok`'s in-project-read check is
   anchored to the kit root, so in `permission_mode: "auto"` a teleported
   session's project reads may raise cards a kit session wouldn't. Noisy,

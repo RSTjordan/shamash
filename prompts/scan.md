@@ -1,7 +1,8 @@
 # Scheduled WhatsApp scan
 
 Work from {{PROJECT_ROOT}}. Follow brief/AGENT_BRIEF.md for ALL judgment
-calls. This run is fully autonomous — do not ask questions. The launcher
+calls. This run is fully autonomous — do not ask questions, except for the one
+carve-out in 7b (a blocking multi-choice decision, asked as a poll). The launcher
 passes the current local date/time (timezone {{TIMEZONE}}) in the prompt —
 trust it. The digest goes to {{OWNER_NAME}} and is written entirely in
 {{REPLY_LANGUAGE}}. The instructions below name the digest's sections in
@@ -91,6 +92,18 @@ scan: {{DIGEST_LABELS}}.
      look unresolved (nothing in the new window answers or closes them).
      Max 5, one line each, oldest-first so the stale ones stand out. If
      everything closed, say so in one line.
+7b. ASK BEFORE YOU COMPOSE: step 8's rule has a twin — a multi-choice question
+   to {{OWNER_NAME}}, one of a known set of options and not an open-ended one,
+   goes out as a native WhatsApp poll through **scripts/ask.py**, never as
+   "reply 1/2/3" in text and never as a hand-rolled bridge POST:
+     `py -3 scripts/ask.py --option "..." --option "..." "question"`
+   With no `--channel` it lands wherever notify.py would have gone (contact
+   first, group as the fallback). Set your shell tool's timeout to at least
+   300000 ms and wait for the JSON answer ("chosen"). Any blocking question
+   fires HERE, before the digest is composed — a scan is unattended and will
+   usually get no answer, and only a question asked at this point can still
+   put itself under "Needs me" in the very digest step 8 sends. If "chosen"
+   comes back null, do exactly that and carry on.
 8. Send the digest (format per brief, including the sections from steps 6–7)
    through **scripts/notify.py**, never with send_message and never by
    hand-rolling a bridge POST:
