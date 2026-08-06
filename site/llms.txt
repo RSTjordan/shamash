@@ -1,0 +1,30 @@
+# Shamash
+
+> Shamash (Hebrew: שמש) is an open-source personal WhatsApp AI agent that runs entirely on the user's own Windows computer, powered by the Claude subscription they already pay for (Pro or Max, via Claude Code). No cloud service, no API key, no per-message billing, no telemetry — nothing phones home. MIT licensed.
+
+Shamash is named after the shamash candle of the Hanukkah menorah — the candle that lights all the others, then stands aside.
+
+## What it does
+
+- Reads the user's WhatsApp chats twice a day and sends one digest: what it closed on its own, what it put on the calendar, and what is still waiting — and why.
+- Takes commands by WhatsApp message: summarize a neglected group, find a file, check the calendar, reply to someone.
+- Mid-task steering: a follow-up message merges into the running job instead of waiting for it to finish.
+- Long-running projects: a scheduled engine keeps pushing multi-day tasks forward in bounded shifts and reports after each one.
+- Calendar: books meetings people ask for after checking availability; turns "I'll send it tomorrow" into a real reminder.
+- Approval cards: anything risky stops and asks on WhatsApp; a 👍 reaction continues it. The user stays in control.
+
+## Install
+
+Requires Windows and [Claude Code](https://claude.com/claude-code) signed in with a Claude Pro or Max subscription. The user opens Claude Code in an empty folder and pastes one prompt; an installer agent clones https://github.com/RSTjordan/shamash, follows install/RUNBOOK.md stage by stage, and finishes with a real WhatsApp message waiting for a reply. About 40 minutes total, roughly 15 of them needing the user.
+
+## Cost and risks
+
+- Cost: nothing beyond the existing Claude subscription. Works on Pro, best on Max.
+- Risks (stated openly): the install gives WhatsApp messages a path onto the computer, and the connection uses an unofficial WhatsApp client — low ban risk, not zero. See [RISKS.md](https://github.com/RSTjordan/shamash/blob/main/RISKS.md) (Hebrew: [RISKS.he.md](https://github.com/RSTjordan/shamash/blob/main/RISKS.he.md)). The installer stops and verifies the user read it.
+
+## Links
+
+- [English landing page](https://myshamash.com/)
+- [Hebrew landing page](https://myshamash.com/he.html)
+- [Source code on GitHub](https://github.com/RSTjordan/shamash)
+- [License (MIT)](https://github.com/RSTjordan/shamash/blob/main/LICENSE)

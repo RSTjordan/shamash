@@ -1,36 +1,36 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shamash — a chief of staff for your WhatsApp, on your own machine</title>
-<meta name="description" content="A personal WhatsApp AI agent that runs on your computer, on the Claude subscription you already pay for. No cloud, no API key, no telemetry. Open source.">
-<meta property="og:title" content="Shamash — a chief of staff for your WhatsApp">
-<meta property="og:description" content="Runs on your machine, on your Claude subscription. Nothing phones home.">
+<title>שמש — ראש המטה של הוואטסאפ שלך, על המחשב שלך</title>
+<meta name="description" content="סוכן AI אישי לוואטסאפ, שרץ על המחשב שלך ומשתמש במנוי Claude שכבר יש לך. בלי ענן, בלי מפתח API ובלי טלמטריה. קוד פתוח.">
+<meta property="og:title" content="שמש — ראש המטה של הוואטסאפ שלך">
+<meta property="og:description" content="רץ על המחשב שלך, עם מנוי Claude שלך. שום דבר לא יוצא החוצה.">
 <meta property="og:image" content="https://myshamash.com/shamash-avatar.png">
-<meta property="og:url" content="https://myshamash.com/">
+<meta property="og:url" content="https://myshamash.com/he.html">
 <meta property="og:type" content="website">
-<meta property="og:locale" content="en_US">
+<meta property="og:locale" content="he_IL">
 <meta name="twitter:card" content="summary">
-<link rel="canonical" href="https://myshamash.com/">
+<link rel="canonical" href="https://myshamash.com/he.html">
 <link rel="alternate" hreflang="en" href="https://myshamash.com/">
 <link rel="alternate" hreflang="he" href="https://myshamash.com/he.html">
 <link rel="alternate" hreflang="x-default" href="https://myshamash.com/">
 <link rel="icon" type="image/png" href="shamash-avatar.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
- {"@type":"SoftwareApplication","@id":"https://myshamash.com/#app","name":"Shamash","alternateName":"שמש",
-  "description":"A personal WhatsApp AI agent that runs on your own computer, on the Claude subscription you already pay for. No cloud, no API key, no telemetry. Open source.",
-  "url":"https://myshamash.com/","image":"https://myshamash.com/shamash-avatar.png",
+ {"@type":"SoftwareApplication","@id":"https://myshamash.com/he.html#app","name":"Shamash","alternateName":"שמש",
+  "description":"סוכן AI אישי לוואטסאפ, שרץ על המחשב שלך ומשתמש במנוי Claude שכבר יש לך. בלי ענן, בלי מפתח API ובלי טלמטריה. קוד פתוח.",
+  "url":"https://myshamash.com/he.html","image":"https://myshamash.com/shamash-avatar.png",
   "operatingSystem":"Windows","applicationCategory":"UtilitiesApplication",
   "offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},
   "license":"https://github.com/RSTjordan/shamash/blob/main/LICENSE",
   "installUrl":"https://github.com/RSTjordan/shamash","downloadUrl":"https://github.com/RSTjordan/shamash",
-  "softwareRequirements":"Claude Code with a Claude Pro or Max subscription","inLanguage":["en","he"]},
- {"@type":"FAQPage","@id":"https://myshamash.com/#faq","inLanguage":"en","mainEntity":[
-  {"@type":"Question","name":"What does Shamash cost?","acceptedAnswer":{"@type":"Answer","text":"Nothing beyond the Claude subscription you already have: it works on Pro and is best on Max. No extra payment to anyone."}},
-  {"@type":"Question","name":"How long does installation take?","acceptedAnswer":{"@type":"Answer","text":"About 40 minutes. The installer agent does most of it alone; you spend about 15 minutes of attention — a short interview about your people, a QR scan, and a risk gate."}},
-  {"@type":"Question","name":"What are the risks?","acceptedAnswer":{"@type":"Answer","text":"The install gives WhatsApp messages a path onto your computer, and the connection uses an unofficial WhatsApp client (low ban risk, not zero). Read RISKS.md before installing — the installer will stop and make sure you did."}}]}
+  "softwareRequirements":"Claude Code עם מנוי Claude מסוג Pro או Max","inLanguage":["he","en"]},
+ {"@type":"FAQPage","@id":"https://myshamash.com/he.html#faq","inLanguage":"he","mainEntity":[
+  {"@type":"Question","name":"כמה שמש עולה?","acceptedAnswer":{"@type":"Answer","text":"כלום מעבר למנוי Claude שכבר יש לך: עובד עם Pro, הכי טוב עם Max. אין שום תשלום נוסף לאף אחד."}},
+  {"@type":"Question","name":"כמה זמן לוקחת ההתקנה?","acceptedAnswer":{"@type":"Answer","text":"בערך 40 דקות. הסוכן עושה את רוב העבודה לבד; ממך נדרשות בערך 15 דקות — שיחה קצרה על האנשים שלך, סריקת QR ומעבר על שער הסיכונים."}},
+  {"@type":"Question","name":"מה הסיכונים?","acceptedAnswer":{"@type":"Answer","text":"ההתקנה נותנת להודעות וואטסאפ נתיב אל המחשב שלך, והחיבור משתמש בלקוח וואטסאפ לא רשמי — הסיכון לחסימה נמוך, אבל לא אפס. כדאי לקרוא את RISKS.he.md לפני ההתקנה."}}]}
 ]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,7 +81,7 @@
   .btn.primary:hover{background:#ffc985;box-shadow:0 0 44px rgba(255,182,89,.4)}
   .btn.ghost{border:1px solid var(--line);color:var(--wax);background:transparent}
   .btn.ghost:hover{border-color:var(--flame);color:var(--flame)}
-  .hero .kicker{font-weight:700;font-size:.92rem;letter-spacing:.14em;color:var(--flame);margin-bottom:16px;text-transform:uppercase}
+  .hero .kicker{font-weight:700;font-size:.95rem;letter-spacing:.04em;color:var(--flame);margin-bottom:16px}
 
   /* ---------- the lit phone (signature) ---------- */
   .scene{position:relative;display:flex;justify-content:center;padding:12px 0}
@@ -105,7 +105,7 @@
   .wa-chat{padding:14px 12px 18px;display:flex;flex-direction:column;gap:8px;min-height:360px}
   .wa-day{align-self:center;background:#182229;color:var(--wa-time);font-size:.72rem;padding:4px 12px;border-radius:8px;margin-bottom:4px}
   .msg{max-width:86%;padding:8px 10px 6px;border-radius:10px;font-size:.9rem;line-height:1.5;color:#e9edef;position:relative;box-shadow:0 1px 1px rgba(0,0,0,.3)}
-  .msg .meta{display:block;text-align:right;font-size:.66rem;color:var(--wa-time);margin-top:3px}
+  .msg .meta{display:block;text-align:end;font-size:.66rem;color:var(--wa-time);margin-top:3px}
   .msg .meta .ticks{color:var(--wa-tick)}
   .msg.in{background:var(--wa-in);margin-inline-end:auto;border-start-start-radius:3px}
   .msg.out{background:var(--wa-out);margin-inline-start:auto;border-start-end-radius:3px}
@@ -152,8 +152,8 @@
   .install-box{background:var(--night-2);border:1px solid rgba(255,182,89,.5);border-radius:18px;padding:30px;box-shadow:inset 0 0 44px rgba(255,182,89,.05)}
   .install-box ol{margin:16px 0 0;padding-inline-start:22px;display:grid;gap:14px;font-size:1.02rem}
   .install-box ol a{color:var(--flame)}
-  .prompt{background:#070f14;border:1px solid #223138;border-radius:12px;padding:18px;font-family:var(--mono);font-size:.88rem;line-height:1.6;color:#ffd9a8;position:relative;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}
-  .copy-btn{position:absolute;top:10px;right:10px;background:var(--flame);border:none;color:#160f07;font-family:"Assistant",sans-serif;font-weight:700;font-size:.85rem;padding:7px 14px;border-radius:8px;cursor:pointer}
+  .prompt{background:#070f14;border:1px solid #223138;border-radius:12px;padding:48px 18px 18px;font-family:var(--mono);font-size:.92rem;line-height:1.7;color:#ffd9a8;position:relative;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+  .copy-btn{position:absolute;top:10px;inset-inline-end:10px;background:var(--flame);border:none;color:#160f07;font-family:"Assistant",sans-serif;font-weight:700;font-size:.85rem;padding:7px 14px;border-radius:8px;cursor:pointer}
   .copy-btn:hover{background:#ffc985}
   .install-note{margin-top:14px;font-size:.95rem;color:var(--smoke)}
   .install-note a{color:var(--flame)}
@@ -169,9 +169,6 @@
     .hero p.sub{max-width:none}
     .scene{margin-top:26px;margin-bottom:40px}
     .mascot-peek{width:104px;inset-inline-end:calc(50% + 140px);bottom:-18px}
-  }
-  @media (max-width:860px){
-    .prompt{padding-top:48px}
   }
   @media (max-width:560px){
     .mascot-peek{display:none}
@@ -189,42 +186,42 @@
 <header>
   <div class="wrap">
     <nav>
-      <a class="logo display" href="/"><img src="shamash-avatar.png" alt="Shamash"> Shamash</a>
+      <a class="logo display" href="/he.html"><img src="shamash-avatar.png" alt="שמש"> שמש</a>
       <div class="spacer"></div>
-      <a class="link" href="#install">Install</a>
+      <a class="link" href="#install">התקנה</a>
       <a class="link" href="https://github.com/RSTjordan/shamash">GitHub</a>
-      <a class="link" href="/he.html" lang="he" dir="rtl">עברית</a>
+      <a class="link" href="/" lang="en" dir="ltr">English</a>
     </nav>
     <div class="hero">
       <div>
-        <p class="kicker">Open source · Runs locally · On the subscription you already have</p>
-        <h1 class="display">A chief of staff<br>in your WhatsApp.<br><em>On your own machine.</em></h1>
-        <p class="sub">It reads your chats twice a day and sends one digest: what it closed on its own, what it put on your calendar, and what's waiting for you — and why. And you can simply text it.</p>
+        <p class="kicker">קוד פתוח · רץ מקומית · על המנוי שכבר יש לך</p>
+        <h1 class="display">ראש מטה<br>בתוך הוואטסאפ שלך.<br><em>על המחשב שלך.</em></h1>
+        <p class="sub">פעמיים ביום הוא עובר על הצ׳אטים ושולח לך סיכום אחד: מה הוא סגר לבד, מה נכנס ליומן ומה עדיין מחכה לך — ולמה. ואפשר פשוט לכתוב לו הודעה.</p>
         <div class="ctas">
-          <a class="btn primary" href="#install">Install →</a>
-          <a class="btn ghost" href="#what">What does it do?</a>
+          <a class="btn primary" href="#install">התקנה ←</a>
+          <a class="btn ghost" href="#what">מה הוא יודע לעשות?</a>
         </div>
       </div>
-      <div class="scene" aria-label="Demo: a WhatsApp conversation with Shamash">
+      <div class="scene" aria-label="הדגמה: שיחת וואטסאפ עם שמש">
         <div class="glow"></div>
         <div class="phone">
           <div class="wa-head">
             <img src="shamash-avatar.png" alt="">
-            <div class="wa-id"><strong>Shamash</strong><span>connected · on your machine</span></div>
+            <div class="wa-id"><strong>שמש</strong><span>מחובר · על המחשב שלך</span></div>
             <span class="wa-dots">⋮</span>
           </div>
           <div class="wa-chat">
-            <div class="wa-day">Today</div>
-            <div class="msg in m1">Good morning ☀️ Three things from overnight:<br>• The class trip moved to Tuesday<br>• Dana is waiting on tomorrow's meeting<br>• Invoice for the accountant — due Thursday<span class="meta">08:00</span></div>
-            <div class="msg out m2">Book Dana for 10:00 tomorrow and put it on my calendar<span class="meta">08:04 <span class="ticks">✓✓</span></span></div>
+            <div class="wa-day">היום</div>
+            <div class="msg in m1">בוקר טוב ☀️ שלושה דברים מהלילה:<br>• הטיול השנתי עבר ליום שלישי<br>• דנה מחכה לתשובה לגבי הפגישה מחר<br>• חשבונית לרואה החשבון — לתשלום עד יום חמישי<span class="meta">08:00</span></div>
+            <div class="msg out m2">תקבע עם דנה למחר ב־10:00 ותכניס לי ליומן<span class="meta">08:04 <span class="ticks">✓✓</span></span></div>
             <div class="stack">
               <div class="msg in typing" aria-hidden="true"><i></i><i></i><i></i></div>
-              <div class="msg in m4">Done ✅ It's on your calendar and Dana got a message. I checked — you're free.<span class="meta">08:05</span></div>
+              <div class="msg in m4">בוצע ✅ זה ביומן ודנה קיבלה הודעה. בדקתי — אתה פנוי.<span class="meta">08:05</span></div>
             </div>
           </div>
         </div>
         <img class="mascot-peek" src="shamash-mascot.png" alt="">
-        <p class="scene-caption">The shamash — the candle that lights all the others, then stands aside.</p>
+        <p class="scene-caption">השמש — הנר שמדליק את כל השאר, ואז זז הצדה.</p>
       </div>
     </div>
   </div>
@@ -232,40 +229,38 @@
 
 <div class="strip">
   <div class="wrap">
-    <span>Runs on the Claude subscription you already have</span>
-    <span>No API key, no per-message billing</span>
-    <span>Nothing phones home</span>
-    <span>Open source, MIT</span>
+    <span>רץ על מנוי Claude שכבר יש לך</span>
+    <span>בלי מפתח API ובלי תשלום לפי הודעה</span>
+    <span>שום דבר לא יוצא החוצה</span>
+    <span>קוד פתוח, MIT</span>
   </div>
 </div>
 
 <section id="install">
   <div class="wrap">
     <div class="install-box">
-      <h2 class="display">Install</h2>
+      <h2 class="display">התקנה</h2>
       <ol>
-        <li>Install <a href="https://claude.com/claude-code">Claude Code</a> and sign in with a Claude subscription (Pro or Max).</li>
-        <li>Open it in an empty folder and paste this:</li>
+        <li>מתקינים <a href="https://claude.com/claude-code">Claude Code</a> ומתחברים עם מנוי Claude מסוג Pro או Max.</li>
+        <li>פותחים אותו בתיקייה ריקה ומדביקים את זה:</li>
       </ol>
-      <div class="prompt" id="prompt">Clone https://github.com/RSTjordan/shamash into this folder, then read
-install/RUNBOOK.md and carry it out stage by stage. Stop and ask me wherever
-the runbook says to stop. Don't skip the risk gate.<button class="copy-btn" onclick="copyPrompt(this)">Copy</button></div>
-      <p class="install-note">That's it. The installer agent does the rest: builds, asks you the right questions, and finishes with a real WhatsApp message waiting for your reply. About 40 minutes; ~15 of them need you. Windows only for now · <a href="https://github.com/RSTjordan/shamash#readme">Full docs on GitHub</a></p>
+      <div class="prompt" id="prompt">שכפל את https://github.com/RSTjordan/shamash לתיקייה הזאת, ואז קרא את install/RUNBOOK.md ובצע אותו שלב אחר שלב. עצור ושאל אותי בכל מקום שבו ה־runbook אומר לעצור. אל תדלג על שער הסיכונים.<button class="copy-btn" onclick="copyPrompt(this)">העתקה</button></div>
+      <p class="install-note">זהו. סוכן ההתקנה עושה את השאר: בונה, שואל אותך את השאלות הנכונות ומסיים כשמחכה לך הודעת וואטסאפ אמיתית לתגובה. בערך 40 דקות; בכ־15 מהן צריך אותך. כרגע ל־Windows בלבד · <a href="https://github.com/RSTjordan/shamash#readme">התיעוד המלא ב־GitHub</a></p>
     </div>
   </div>
 </section>
 
 <section id="what">
   <div class="wrap">
-    <h2 class="display">What it actually does</h2>
-    <p class="lead">Not a chatbot. A personal assistant that knows your people, works while you're not looking, and knows what it's allowed to do on its own — because you wrote that down for it.</p>
+    <h2 class="display">מה הוא באמת עושה</h2>
+    <p class="lead">זה לא צ׳אטבוט. זה עוזר אישי שמכיר את האנשים שלך, עובד גם כשאתה לא מסתכל ויודע מה מותר לו לעשות לבד — כי אתה הגדרת לו את זה.</p>
     <div class="cards">
-      <div class="card"><div class="emoji">📋</div><h3>A digest, twice a day</h3><p>What got done, what's waiting for you, what's on the calendar, which emails deserve your attention. One message, not twenty.</p></div>
-      <div class="card"><div class="emoji">💬</div><h3>Commands in chat</h3><p>Text it on WhatsApp — summarize a group you've neglected, find a file, check the calendar, reply to someone.</p></div>
-      <div class="card"><div class="emoji">🔀</div><h3>Talk while it works</h3><p>Remembered something mid-task? A follow-up message merges into the running job — like with a person, no "wait until it finishes".</p></div>
-      <div class="card"><div class="emoji">🗂️</div><h3>Long-running projects</h3><p>Give it something multi-day and a scheduled engine keeps pushing it forward in bounded shifts, reporting after each one.</p></div>
-      <div class="card"><div class="emoji">📅</div><h3>Calendar</h3><p>Books the meetings people ask you for — after checking you're free. Turns "I'll send it tomorrow" into a real reminder.</p></div>
-      <div class="card"><div class="emoji">🔒</div><h3>Approval cards</h3><p>Anything risky stops and asks you on WhatsApp. React 👍 and it continues. You're always in control.</p></div>
+      <div class="card"><div class="emoji">📋</div><h3>סיכום, פעמיים ביום</h3><p>מה טופל, מה מחכה לך, מה נכנס ליומן ואילו מיילים באמת דורשים תשומת לב. הודעה אחת, לא עשרים.</p></div>
+      <div class="card"><div class="emoji">💬</div><h3>פקודות בצ׳אט</h3><p>כותבים לו בוואטסאפ: תסכם קבוצה שהזנחת, תמצא קובץ, תבדוק את היומן או תענה למישהו.</p></div>
+      <div class="card"><div class="emoji">🔀</div><h3>ממשיכים לדבר תוך כדי</h3><p>נזכרת במשהו באמצע משימה? הודעת המשך מצטרפת לעבודה שכבר רצה — כמו עם בן אדם, בלי ״חכה עד שזה יסיים״.</p></div>
+      <div class="card"><div class="emoji">🗂️</div><h3>פרויקטים ארוכים</h3><p>נותנים לו משימה של כמה ימים, ומנוע מתוזמן ממשיך לקדם אותה בסבבים מוגדרים ומדווח אחרי כל אחד.</p></div>
+      <div class="card"><div class="emoji">📅</div><h3>יומן</h3><p>קובע את הפגישות שאנשים מבקשים ממך, אחרי שבדק שאתה פנוי. הופך ״אשלח לך מחר״ לתזכורת אמיתית.</p></div>
+      <div class="card"><div class="emoji">🔒</div><h3>כרטיסי אישור</h3><p>כל פעולה מסוכנת נעצרת ומחכה לאישור שלך בוואטסאפ. מגיבים 👍 והוא ממשיך. השליטה תמיד אצלך.</p></div>
     </div>
   </div>
 </section>
@@ -273,11 +268,11 @@ the runbook says to stop. Don't skip the risk gate.<button class="copy-btn" oncl
 <section>
   <div class="wrap">
     <div class="honest">
-      <h2 class="display">Three questions to ask first</h2>
+      <h2 class="display">שלוש שאלות שכדאי לשאול קודם</h2>
       <ul>
-        <li><strong>What does it cost?</strong> The Claude subscription you already have: works on Pro, best on Max. No extra payment to anyone — including us. There is no "us".</li>
-        <li><strong>How long does install take?</strong> About 40 minutes. The agent does most of it alone; you spend about 15 minutes of attention — a short interview about your people, a QR scan, and a risk gate.</li>
-        <li><strong>What are the risks?</strong> Real and not hidden: the install gives WhatsApp messages a path onto your computer, and the connection uses an unofficial client (low ban risk, not zero). <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.md">Read RISKS.md before installing</a> — the installer will stop and make sure you did anyway.</li>
+        <li><strong>כמה זה עולה?</strong> מנוי Claude שכבר יש לך: עובד עם Pro, הכי טוב עם Max. אין שום תשלום נוסף לאף אחד — גם לא לנו. אין ״לנו״.</li>
+        <li><strong>כמה זמן לוקחת ההתקנה?</strong> בערך 40 דקות. הסוכן עושה את רוב העבודה לבד; ממך נדרשות בערך 15 דקות של תשומת לב — שיחה קצרה על האנשים שלך, סריקת QR ומעבר על שער הסיכונים.</li>
+        <li><strong>מה הסיכונים?</strong> אמיתיים, ולא מסתירים אותם: ההתקנה נותנת להודעות וואטסאפ נתיב אל המחשב שלך, והחיבור משתמש בלקוח לא רשמי — הסיכון לחסימה נמוך, אבל לא אפס. <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.he.md">כדאי לקרוא את RISKS.md לפני ההתקנה</a> — ובכל מקרה, המתקין יעצור ויוודא שעשית את זה.</li>
       </ul>
     </div>
   </div>
@@ -285,21 +280,21 @@ the runbook says to stop. Don't skip the risk gate.<button class="copy-btn" oncl
 
 <footer>
   <div class="wrap">
-    <span class="display">Shamash · שמש</span>
+    <span class="display">שמש · Shamash</span>
     <a href="https://github.com/RSTjordan/shamash">GitHub</a>
-    <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.md">Risks</a>
+    <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.he.md">סיכונים</a>
     <a href="https://github.com/RSTjordan/shamash/blob/main/LICENSE">MIT</a>
     <span style="flex:1"></span>
-    <span>Built in Israel <span class="heart">♥</span> A personal project — no servers, no tracking</span>
+    <span>נבנה בישראל <span class="heart">♥</span> פרויקט אישי — בלי שרתים, בלי מעקב</span>
   </div>
 </footer>
 
 <script>
 function copyPrompt(btn){
-  const text = document.getElementById('prompt').innerText.replace(/Copy$|Copied ✓$/,'').trim();
+  const text = document.getElementById('prompt').innerText.replace(/העתקה$|הועתק ✓$/,'').trim();
   navigator.clipboard.writeText(text).then(()=>{
-    btn.textContent = 'Copied ✓';
-    setTimeout(()=>{ btn.textContent = 'Copy'; }, 2000);
+    btn.textContent = 'הועתק ✓';
+    setTimeout(()=>{ btn.textContent = 'העתקה'; }, 2000);
   });
 }
 </script>
