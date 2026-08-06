@@ -229,8 +229,11 @@ _TELEPORT_RULE = """4e. TELEPORT: when {OWNER} asks to continue a desk
    Claude Code session from here ("teleport into <repo>", "continue the
    session where we were building X", or any clear continue-that-session
    intent), run:
-     py -3 scripts/teleport.py --request "<their hint, in your words>" --channel {CHANNEL}
-   with a shell tool timeout of at least 300000 ms. It confirms the choice
+     py -3 scripts/teleport.py --request "<their hint, in your words>" --channel {CHANNEL} --jid <the chat jid noted next to the command>
+   with a shell tool timeout of at least 300000 ms. The --jid is the chat
+   THIS command arrived in (each command line above names it, "in chat
+   ...") — every announcement about the teleport is sent there, so it must
+   not be guessed. It confirms the choice
    with {OWNER} via a poll and prints JSON. If "requested" is true,
    reply only that the teleport is starting — the system announces the rest.
    If false, relay the "reason" plainly."""

@@ -77,15 +77,30 @@ class TestRequestState(unittest.TestCase):
             teleport.STATE_FILE = Path(td) / "teleport.json"
             cand = {"session_id": "s1", "cwd": "C:\\x\\r", "repo": "r",
                     "mtime": 0.0, "description": "", "transcript": ""}
-            teleport.write_request(cand, "contact")
+            teleport.write_request(cand, "contact", "1234@s.whatsapp.net")
             st = teleport.read_state()
             self.assertEqual(st["phase"], "requested")
             self.assertEqual(st["channel"], "contact")
+            # The conversation's jid rides along: announcements are
+            # addressed to it, never to a channel's first chat_jid (the
+            # group, on a main install).
+            self.assertEqual(st["jid"], "1234@s.whatsapp.net")
             self.assertTrue(teleport.request_fresh(st))
             st["requested_at"] = time.time() - 999
             self.assertFalse(teleport.request_fresh(st))
             teleport.clear_state()
             self.assertIsNone(teleport.read_state())
+
+    def test_jid_defaults_to_empty_not_missing(self):
+        """A request written without a jid still carries the key — the
+        watcher reads st["jid"] and falls back to the self-chat, so a
+        missing key would be a KeyError on an announcement path."""
+        with tempfile.TemporaryDirectory() as td:
+            teleport.STATE_FILE = Path(td) / "teleport.json"
+            cand = {"session_id": "s1", "cwd": "C:\\x\\r", "repo": "r",
+                    "mtime": 0.0, "description": "", "transcript": ""}
+            teleport.write_request(cand, "main")
+            self.assertEqual(teleport.read_state()["jid"], "")
 
 
 if __name__ == "__main__":

@@ -61,6 +61,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import config
+import notify as notify_mod
 import strings
 import teleport as teleport_mod
 
@@ -101,8 +102,18 @@ PERMISSION_MODE = cfg["permission_mode"]
 # FOREIGN repo, so its cwd, its pidfile and its log are all its own.
 TELEPORT_ENABLED = FEATURES.get("teleport", False)
 TELEPORT_CFG = cfg.get("teleport", {})
+if not isinstance(TELEPORT_CFG, dict):
+    # A hand-written `"teleport": true` must not take the watcher down at
+    # import — least of all on an install that never enabled the feature.
+    TELEPORT_CFG = {}
 RELEASE_WORD = str(TELEPORT_CFG.get("release_word", "release")).strip().lower()
-TELEPORT_IDLE_S = float(TELEPORT_CFG.get("idle_minutes", 240)) * 60
+try:
+    TELEPORT_IDLE_S = float(TELEPORT_CFG.get("idle_minutes", 240)) * 60
+except (TypeError, ValueError):
+    TELEPORT_IDLE_S = 240 * 60
+RELEASE_QUIET = 30.0  # post-release seconds in which the freed channel is
+# ack-only: the teleport turn it was released from is still unwinding, and
+# the resident it would otherwise be steered into is idle.
 TAG = "\U0001f5a5\ufe0f"  # 🖥️
 
 # The resident agent's model — the kit's cost knob (config.json "model" /
@@ -366,10 +377,17 @@ def ack_steered(channel: str, commands: list) -> None:
     _ack(channel, commands, strings.t("steer_ack"))
 
 
-def make_progress_sender(channel: str, jid: str):
+def make_progress_sender(channel: str, jid: str, deliver=None):
     """Forward the agent's mid-work narration as quote-styled messages — the
     owner's "watch it think" channel. Throttled so a chatty turn can't spam
-    the chat (and WhatsApp sends stay human-paced)."""
+    the chat (and WhatsApp sends stay human-paced).
+
+    The throttle is the point, not the formatting: every one of these sends
+    is a blocking HTTP call made from inside run_turn's read loop, so an
+    unthrottled narration path stalls the very loop that answers permission
+    cards and notices the release word. `deliver(body)` overrides only HOW
+    the quoted text goes out (the teleport path tags it); the 5-per-turn,
+    15s-apart, 15-char gate is shared by every caller."""
     state = {"count": 0, "last": 0.0}
 
     def send(text: str) -> None:
@@ -381,12 +399,15 @@ def make_progress_sender(channel: str, jid: str):
         state["count"] += 1
         state["last"] = time.time()
         body = "\n".join("> " + ln for ln in text.splitlines() if ln.strip())
-        bridge_post(
-            channel,
-            "/send",
-            {"recipient": jid, "message": f"{CHANNELS[channel]['header']}{body}"},
-            timeout=15,
-        )
+        if deliver is not None:
+            deliver(body)
+        else:
+            bridge_post(
+                channel,
+                "/send",
+                {"recipient": jid, "message": f"{CHANNELS[channel]['header']}{body}"},
+                timeout=15,
+            )
         # The send just cleared the composing presence — put the dots straight
         # back up instead of waiting out a refresh tick.
         typing_bubble.poke()
@@ -417,17 +438,39 @@ def send_reply(channel: str, commands: list, text: str) -> bool:
     return bool(res and res.get("success"))
 
 
-def notify_owner_teleport(channel: str | None, body: str) -> None:
-    """Teleport announcements: bridge REST, watcher-delivered, on the
-    teleported channel when it exists, else through notify's ordering."""
+def notify_owner_teleport(channel: str | None, body: str,
+                          jid: str | None = None) -> None:
+    """Teleport announcements: bridge REST, watcher-delivered, into the
+    chat the teleport actually belongs to.
+
+    The recipient is the conversation's own jid; the fallback is the
+    owner's SELF-CHAT, never the channel's first chat_jid — on a main
+    install that is the GROUP, and the exit one-liner is the only handle
+    on a forked transcript, so it must land where the owner is reading.
+
+    Never fire-and-forget: a mode switch nobody was told about is worse
+    than no mode switch. A failed or unconfirmed send falls through to
+    notify's own channel ordering AND delivery verification, and a total
+    failure is logged loudly — the announcement carries the resume line."""
     if channel and channel in CHANNELS:
-        ch = CHANNELS[channel]
-        bridge_post(channel, "/send",
-                    {"recipient": ch["chat_jids"][0] if ch["chat_jids"] else SELF_JID,
-                     "message": f"{ch['header']}{body}"}, timeout=15)
-    else:
-        import notify as notify_mod
-        notify_mod.notify(body)
+        res = bridge_post(channel, "/send",
+                          {"recipient": jid or SELF_JID,
+                           "message": f"{CHANNELS[channel]['header']}{body}"},
+                          timeout=15)
+        if res and res.get("success"):
+            return
+        logging.error(
+            "teleport announcement not confirmed on %s (%s) — falling back",
+            channel, res,
+        )
+    try:
+        results = notify_mod.notify(body)
+    except Exception:
+        logging.exception("teleport announcement fallback crashed")
+        results = None
+    if not results or not any(r.get("verified") for r in results):
+        logging.error("teleport announcement UNDELIVERED: %s",
+                      " ".join(body.split()))
 
 
 def teleport_deliver(channel: str, jid: str, repo: str, text: str) -> bool:
@@ -1521,13 +1564,22 @@ def service_teleport(tele: dict) -> None:
         teleport_mod.clear_state()
         return
     if not teleport_mod.request_fresh(st):
-        teleport_mod.clear_state()
         notify_owner_teleport(st.get("channel"), strings.t(
-            "tp_stale_request", mins=int(teleport_mod.REQUEST_TTL // 60)))
+            "tp_stale_request", mins=int(teleport_mod.REQUEST_TTL // 60)),
+            st.get("jid"))
+        teleport_mod.clear_state()
         return
     channel = st.get("channel")
     if channel not in CHANNELS:
         teleport_mod.clear_state()
+        return
+    if not bridge_connected(channel):
+        # Taking over with the bridge down would switch the owner's mode
+        # in silence: the enter announcement is the only thing that tells
+        # them where their messages now go. DEFER — the request keeps its
+        # requested_at, so REQUEST_TTL bounds the wait on its own and a
+        # bridge that never returns ends as an announced stale request.
+        logging.warning("teleport request deferred — %s bridge down", channel)
         return
     forked = str(uuid.uuid4())
     session = TeleportSession(st["source_session_id"], forked, st["cwd"])
@@ -1539,7 +1591,7 @@ def service_teleport(tele: dict) -> None:
     tmp.replace(teleport_mod.STATE_FILE)
     tele["session"], tele["state"] = session, st
     notify_owner_teleport(channel, strings.t(
-        "tp_enter", repo=st["repo"], release=RELEASE_WORD))
+        "tp_enter", repo=st["repo"], release=RELEASE_WORD), st.get("jid"))
     logging.info("teleport active: %s (%s -> %s)", st["repo"],
                  st["source_session_id"], forked)
 
@@ -1550,19 +1602,32 @@ def release_teleport(tele: dict, reason: str) -> None:
     repo = st.get("repo", "?")
     sid = st.get("forked_session_id", "")
     channel = st.get("channel")
+    # The wait tick keeps running for the rest of this turn, and with the
+    # holder cleared its steer branch would treat the released channel as
+    # steerable again — injecting into an IDLE resident, which is an
+    # orphan turn nobody reads (unanswered control_request, next batch
+    # drained or blocked). Steering THAT channel is forbidden for a beat;
+    # the other channel is untouched, so its turns keep flowing.
+    tele["released_at"], tele["released_channel"] = time.time(), channel
     if session is not None:
         if reason == "release":
             session.kill()  # release means NOW, not after the turn
         else:
             session.shutdown()
-    teleport_mod.clear_state()
     key = {"release": "tp_exit", "idle": "tp_exit_idle",
            "crash": "tp_exit_crash"}[reason]
     fmt = {"repo": repo, "sid": sid}
     if reason == "idle":
         fmt["mins"] = int(TELEPORT_IDLE_S // 60)
-    notify_owner_teleport(channel, strings.t(key, **fmt))
-    logging.info("teleport released (%s): %s", reason, repo)
+    # The one-liner goes to the log FIRST and unconditionally: the forked
+    # transcript is only reachable through that id, so it must survive a
+    # failed send, a crashed fallback and a closed WhatsApp alike.
+    logging.info("teleport released (%s): %s — resume with claude --resume %s",
+                 reason, repo, sid)
+    # …and the announcement goes out BEFORE the state file is cleared, so a
+    # delivery failure leaves the id recoverable on disk instead of erased.
+    notify_owner_teleport(channel, strings.t(key, **fmt), st.get("jid"))
+    teleport_mod.clear_state()
 
 
 def run_teleport_batch(tele: dict, channel: str, commands: list,
@@ -1570,14 +1635,20 @@ def run_teleport_batch(tele: dict, channel: str, commands: list,
     """One owner batch → the teleported runner. Returns True when the
     batch is fully handled (including release)."""
     session, st = tele["session"], tele["state"]
+    jid = commands[-1][1]
     st["last_activity"] = time.time()
+    # Announcements follow the live conversation: if the owner moved chats,
+    # the exit one-liner must land where they are, not where they started.
+    # Refreshed before the release check, so even "release" as their first
+    # word in a new chat is answered in that chat. Persisted by the
+    # post-turn write below (same dict).
+    st["jid"] = jid
     # Release word: checked BEFORE anything else — it must work even
     # while a card is open or a turn is running, and it ends things NOW.
     for _id, _jid, _ts, content, _media, _f in commands:
         if (content or "").strip().lower() == RELEASE_WORD:
             release_teleport(tele, "release")
             return True
-    jid = commands[-1][1]
     ack_new(channel, commands)
     if CHANNELS[channel].get("typing_ack"):
         typing_bubble.start(channel, jid)
@@ -1609,6 +1680,16 @@ def run_teleport_batch(tele: dict, channel: str, commands: list,
         if teleport_deliver(channel, jid, st["repo"], text):
             delivered["n"] += 1
 
+    # Narration goes through the SAME throttle as the normal path (5 per
+    # turn, 15s apart): these sends block run_turn's read loop, which is
+    # also the loop that answers cards and sees the release word. Only the
+    # delivery is teleport-specific — the tag, not the pacing. Final
+    # results stay unthrottled; they are the answer, not commentary.
+    narrate = make_progress_sender(
+        channel, jid,
+        deliver=lambda body: teleport_deliver(channel, jid, st["repo"], body),
+    )
+
     try:
         ok, results = session.run_turn(
             prompt,
@@ -1617,8 +1698,7 @@ def run_teleport_batch(tele: dict, channel: str, commands: list,
             # and keeps arrivals acked instead of silent. Without it, a
             # teleported turn is un-releasable until it ends.
             on_wait_tick=wait_tick,
-            on_progress=lambda t: teleport_deliver(channel, jid, st["repo"],
-                                                   "> " + t),
+            on_progress=narrate,
             on_result=on_result,
             on_permission=ask_perm,
             on_denial=ask_denied,
@@ -1655,14 +1735,19 @@ def main() -> None:
         if not CHANNELS[c]["marker"].exists():
             write_marker(c, read_marker(c))
     cleanup_orphan_session()
-    tele = {"session": None, "state": None}  # active TeleportSession + its dict
+    # active TeleportSession + its dict; released_at guards the freed
+    # channel against a stray steer while the dying turn unwinds.
+    tele = {"session": None, "state": None,
+            "released_at": 0.0, "released_channel": None}
     if TELEPORT_ENABLED:
         st = teleport_mod.read_state()
         if st:
             teleport_mod.clear_state()
             sid = st.get("forked_session_id") or st.get("source_session_id")
+            logging.info("teleport dropped at startup: %s — resume with "
+                         "claude --resume %s", st.get("repo", "?"), sid)
             notify_owner_teleport(st.get("channel"), strings.t(
-                "tp_dropped", repo=st.get("repo", "?"), sid=sid))
+                "tp_dropped", repo=st.get("repo", "?"), sid=sid), st.get("jid"))
     ensure_whisper_daemon()
     processed = load_processed()
     # Seed: rows at/before each marker were handled by a previous instance.
@@ -1724,7 +1809,18 @@ def main() -> None:
                 fresh = [r for r in arrivals if _is_command(c, r) and r[0] not in _acked]
                 if not fresh or not bridge_connected(c):
                     continue
-                if c == channel and session.inject(build_steer_prompt(c, fresh)):
+                # A channel released from teleport in the last RELEASE_QUIET
+                # seconds is ack-only: this turn may be the dying teleport
+                # turn, in which case `session` here is the IDLE resident and
+                # injecting into it starts an orphan turn — an unanswered
+                # control_request and a drained/blocked next batch. The
+                # message is not lost; it runs as the next batch, on the
+                # resident, in order.
+                just_released = (c == tele.get("released_channel") and
+                                 time.time() - tele.get("released_at", 0)
+                                 < RELEASE_QUIET)
+                if (c == channel and not just_released
+                        and session.inject(build_steer_prompt(c, fresh))):
                     ack_steered(c, fresh)
                     steered.extend(fresh)
                     logging.info(

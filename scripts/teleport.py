@@ -10,12 +10,13 @@ and imports this module (never the reverse; watcher.py raises at import
 time without a config, which would make a circular import a startup
 trap).
 
-The handoff: the resident agent runs `--request "<hint>" --channel X`;
-this module confirms a choice with the owner via polls and writes
-state/teleport.json with phase="requested". The watcher's main loop
-notices it between turns, spawns the runner, and flips routing. A
-request older than REQUEST_TTL is discarded — a watcher that was down
-must not fire a teleport the owner confirmed an hour ago.
+The handoff: the resident agent runs `--request "<hint>" --channel X
+--jid <chat>`; this module confirms a choice with the owner via polls and
+writes state/teleport.json with phase="requested" carrying that jid — the
+chat every announcement about this teleport is addressed to. The
+watcher's main loop notices it between turns, spawns the runner, and
+flips routing. A request older than REQUEST_TTL is discarded — a watcher
+that was down must not fire a teleport the owner confirmed an hour ago.
 """
 import argparse
 import json
@@ -164,11 +165,16 @@ def looks_open(candidate):
     return time.time() - candidate["mtime"] < OPEN_AT_DESK_S
 
 
-def write_request(candidate, channel):
+def write_request(candidate, channel, jid=""):
+    """`jid` is the chat the request came from — every teleport
+    announcement is addressed to it. Without it the watcher falls back to
+    the owner's self-chat, never to a channel's first chat_jid: on a main
+    install that is the GROUP, and the exit one-liner is the only handle
+    on the forked transcript."""
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     tmp = STATE_FILE.with_suffix(".json.tmp")
     tmp.write_text(json.dumps({
-        "phase": "requested", "channel": channel,
+        "phase": "requested", "channel": channel, "jid": jid or "",
         "source_session_id": candidate["session_id"],
         "forked_session_id": "",
         "cwd": candidate["cwd"], "repo": candidate["repo"],
@@ -233,7 +239,7 @@ def _pick(candidates, channel):
     return None
 
 
-def request(hint, channel):
+def request(hint, channel, jid=""):
     """The full selection flow. Returns a dict for the caller's reply."""
     candidates = discover()
     if not candidates:
@@ -250,7 +256,7 @@ def request(hint, channel):
         chosen = _pick(hits or candidates, channel)
     if chosen is None:
         return {"requested": False, "reason": "cancelled or no answer"}
-    write_request(chosen, channel)
+    write_request(chosen, channel, jid)
     return {"requested": True, "repo": chosen["repo"],
             "session_id": chosen["session_id"]}
 
@@ -260,6 +266,9 @@ def main():
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--request", metavar="HINT")
     ap.add_argument("--channel", choices=["contact", "main"])
+    ap.add_argument("--jid", default="", metavar="CHAT_JID",
+                    help="the chat the request came from — where every "
+                         "teleport announcement is addressed")
     args = ap.parse_args()
     if args.list:
         print(json.dumps(discover(), ensure_ascii=False, indent=2))
@@ -267,7 +276,7 @@ def main():
     if args.request is not None:
         if not args.channel:
             ap.error("--request needs --channel")
-        print(json.dumps(request(args.request, args.channel),
+        print(json.dumps(request(args.request, args.channel, args.jid),
                          ensure_ascii=False))
         return 0
     ap.error("give --list or --request")
