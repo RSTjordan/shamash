@@ -36,6 +36,12 @@ _ENGLISH = {
     "opt_allow_once": "Allow once",
     "opt_always": "Always",
     "opt_deny": "Deny",
+    "tp_confirm_q": "🖥️ Continue *{repo}* — {desc} (last active {age} ago)?",
+    "tp_open_warn": " ⚠️ This session looks open at the desk — teleporting forks it; typing at the desk afterwards won't reach this copy.",
+    "tp_continue": "Continue",
+    "tp_pick_other": "Pick another",
+    "tp_cancel": "Cancel",
+    "tp_pick_q": "🖥️ Which session?",
 }
 
 _HEBREW = {
@@ -58,6 +64,12 @@ _HEBREW = {
     "opt_allow_once": "אישור",
     "opt_always": "תמיד",
     "opt_deny": "דחייה",
+    "tp_confirm_q": "🖥️ להמשיך את *{repo}* — {desc} (פעיל לפני {age})?",
+    "tp_open_warn": " ⚠️ נראה שהסשן פתוח במחשב — טלפורט מפצל אותו; מה שיוקלד שם אחר כך לא יגיע לעותק הזה.",
+    "tp_continue": "המשך",
+    "tp_pick_other": "בחר אחר",
+    "tp_cancel": "ביטול",
+    "tp_pick_q": "🖥️ איזה סשן?",
 }
 
 _TABLES = {"english": _ENGLISH, "hebrew": _HEBREW}
