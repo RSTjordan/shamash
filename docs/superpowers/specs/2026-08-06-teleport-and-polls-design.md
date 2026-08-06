@@ -467,9 +467,13 @@ channel type — the channel's `system_delivers_reply` flag does not apply to
 teleport mode.
 
 **Routing while active:** the channel the teleport was triggered from
-routes ALL its messages to the TeleportSession — same batching, steering,
+routes ALL its messages to the TeleportSession — same batching,
 typing-ack, and approval machinery as the normal resident, driven by the
-same main loop. Approval requests from the runner pass the teleported cwd
+same main loop. One deliberate difference from the normal resident:
+mid-turn arrivals are acked immediately but NOT steered into the foreign
+session's running turn (kit steer-notes would confuse a session that
+never saw the kit's conventions) — they run as the next batch the moment
+the turn ends. The release word is exempt: it cuts through mid-turn. Approval requests from the runner pass the teleported cwd
 as `project_root` (F1.3), so "always" rules land in the right project. The
 **other** channel (in the standard install: the main group/self-chat, when
 teleport ran on the contact channel) keeps the normal assistant — the
