@@ -101,6 +101,8 @@ stage, not the install.
   actually free; turns "I'll send it tomorrow" into a reminder.
 - **Approval cards** — anything risky stops and asks you in WhatsApp. React 👍
   and it proceeds.
+- **Polls, not "reply 1/2/3"** — real WhatsApp polls for every choice,
+  including approvals.
 
 **Opt-in, because they cost something:**
 
@@ -109,6 +111,9 @@ stage, not the install.
   alerts that actually ring)
 - **Your own scheduled runs** — anything you can describe, on a schedule
   ([docs/JOBS.md](docs/JOBS.md) — there is no cron syntax; it's simpler).
+- **Teleport** — continue any desk Claude Code session from WhatsApp, guarded
+  by the same approval cards. Off by default: switched on, it gives WhatsApp
+  reach into every project on your machine ([RISKS.md](RISKS.md) §1b).
 
 ## How it works
 

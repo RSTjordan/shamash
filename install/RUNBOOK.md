@@ -129,9 +129,15 @@ Install only what's missing, and only what stage 2 asked for. Use `winget`.
    `/api/send`'s `quoted_*`, `.bridge-token` auth, `WHATSAPP_BRIDGE_PORT`,
    `allowedMediaRoots`) was verified against exactly this commit. Only move
    the pin deliberately, with a full re-test.
-2. Apply **only `patches/bridge-log-level.md`** now. The frame patch needs
-   values from `config.json`, which doesn't exist until stage 6 — it is
-   applied in stage 6c, and applying it now with guessed values causes the
+2. Apply the two patches that need nothing out of `config.json`:
+   `patches/bridge-log-level.md` and `patches/bridge-polls.md`. The second is
+   native polls — `POST /api/poll`, decryption of incoming votes, and the
+   loopback `/api/vote` endpoint stage 9d tests with. Without it every
+   question the agent asks arrives as numbered text instead of a one-tap
+   poll: it still works, it is just a keyboard every time, forever.
+   **Not the frame patch**:
+   it needs values from `config.json`, which doesn't exist until stage 6 — it
+   is applied in stage 6c, and applying it now with guessed values causes the
    worst failure this kit has (see stage 6c).
 3. Build. If the build fails on CGO, go back to gcc in stage 3 — that is nearly
    always the cause.
@@ -206,13 +212,25 @@ Write `config.json` and `brief/AGENT_BRIEF.md` from
    populated with strong defaults (never message someone new, never discuss
    money, never accept anything contractual). They can add; walk them through
    removing anything only if they ask.
-6. **Digest times**, and which chat is the assistant's channel. On the
+6. **Teleport.** *"Do you want to be able to pick up a Claude Code session
+   from your computer on your phone — tell me 'teleport into that repo we
+   were working on' and carry on from WhatsApp?"* Read them **RISKS.md §1b**
+   before they answer: with this on, WhatsApp reaches every project on this
+   machine — guarded by the same approval cards, and by whatever permission
+   rules each project already carries, so a broad rule they once approved at
+   the desk becomes phone-reachable. Recommended: **no**; it is one config
+   key away on any day they want it. If yes, set `features.teleport` to
+   `true` and ask for a **release word** — what they send to hand the session
+   back to the desk — into `teleport.release_word` (default `release`). Tell
+   them a session they walk away from closes itself on its own, after
+   `teleport.idle_minutes` (default 240 — four hours).
+7. **Digest times**, and which chat is the assistant's channel. On the
    chat-with-yourself route, don't just ask which chat — **create it with them**:
    a WhatsApp group containing only them, named after the assistant. It is not
    the same as WhatsApp's built-in *Message yourself* chat, which can't be named
    or given an icon. Record the resulting JID in the config; later stages send
    into it.
-7. **What to call it.** Default "Claude". This is their agent's name, not the
+8. **What to call it.** Default "Claude". This is their agent's name, not the
    project's.
 
 Then **play it all back** — what they chose and what it implies — and get a
@@ -469,6 +487,60 @@ iPhone thing.
 
 Either way it is one message, optional for them, and it does not block stage 10.
 If they ignore it, move on — do not ask again.
+
+### Stage 9d — Can this install actually do polls?
+
+The agent asks its questions as native WhatsApp polls — approval cards
+included — and falls back to a numbered-text message ("reply 1/2/3") on any
+channel that can't round-trip one. `state/poll-surfaces.json` is what tells it
+which is which: one key per channel, `{"contact": true, "main": false}`. A
+missing file or key is read optimistically as `true`, so writing this file is
+how a guess becomes a fact. Test each channel this install has, now, while
+they are still holding the phone.
+
+Per channel — `contact` (only if `channels.contact.enabled`) and `main` —
+against that bridge's own port and `store\.bridge-token`:
+
+1. **Send a poll.** `POST /api/poll` into the chat that channel really uses:
+   the owner's own JID on the contact channel; on main, the group JID if one
+   is configured, else the self JID. Question *"Kit test — tap either one"*,
+   options `["one", "two"]`. Keep the `message_id` it returns. A **404 here
+   means the old bridge binary is still serving** — go back to the polls
+   patch in stage 4 and redo its swap; nothing below can pass until then.
+2. **Get a vote onto it, from a different account or a different device.** A
+   bridge never receives its own outgoing message, so a vote cast on the same
+   bridge that sent the poll answers `{"success": true}` and then produces
+   nothing at all. That is how WhatsApp multi-device works, not a fault in the
+   channel — never write it down as a `false`.
+   - **`contact`:** vote from the MAIN bridge — `POST /api/vote` with
+     `poll_from_me` false and `options: ["two"]`. `recipient` is the contact
+     account's chat JID in phone form; `poll_sender_jid` must be that same
+     account's **LID** form. Phone form silently fails the MAC: the vote is
+     accepted, undecryptable, and dropped by the receiving bridge with only a
+     warning in its log. The rule, the reason, and the `whatsmeow_lid_map`
+     query that yields the LID are in `patches/bridge-polls.md` → *"The LID
+     rule (cross-account votes)"*.
+   - **`main`:** the owner's account is the only account in that chat, so
+     there is no second bridge to vote from — ask them to tap an option on
+     their phone. Their phone is another device on the same account, which is
+     the case that does arrive. One tap, in the chat they are already in.
+3. **Look for the vote** in that channel's `messages.db`, for up to ~15
+   seconds:
+
+       SELECT content FROM messages
+       WHERE media_type = 'poll_vote' AND filename = '<the poll message id>';
+
+   The row's `content` is the label they picked. No row means no round trip.
+
+Write `state/poll-surfaces.json` from what actually happened: `true` only for a
+channel whose vote row appeared, `false` for one where it didn't, and no key at
+all for a channel this install doesn't have. Then say in one sentence what a
+`false` means for them: on that channel the agent's questions arrive as a
+numbered list and they answer by sending the number back. Nothing is lost
+except the tap — so a `false` is not worth stalling an install over, and
+re-testing it is this stage again, on any later day. Leave the test polls
+where they are; they're inert. Just tell them what those two polls were, so
+they aren't the first mystery in the chat.
 
 ## Stage 10 — Hand over
 

@@ -49,9 +49,29 @@ The token list lives in `config.placeholders()`. An unknown token is left in
 the output verbatim — a typo should be visible as `{{WHOPS}}` in the prompt, not
 silently become an empty string that changes what the agent was told.
 
+Not every token is a config value copied through: some are computed, and some
+are feature-gated. `DIGEST_LABELS` is derived from the owner's reply language,
+and `TELEPORT_RULE` renders as the empty string on an install that left
+teleport off — the rule is simply not in the prompt, rather than being in it
+and disclaimed.
+
 **3. User-owned.** `config.json`, `brief/*.md`, `state/`, `logs/`, `bridge/`,
 `jobs/`. Generated once at install from `*.template.md`, then theirs. All
 gitignored.
+
+Most of `state/` is bookkeeping the code keeps for itself, but three files
+decide behaviour and are worth knowing by name:
+
+- `state/poll-surfaces.json` — which channels proved, once at install, that
+  they can round-trip a native WhatsApp poll: `{"contact": true, "main": false}`.
+  A `false` puts `ask.py` into numbered-text fallback on that channel; a
+  missing file or key is read optimistically as `true`.
+- `state/ask-open.json` — present while a question to the owner is waiting for
+  its answer. The watcher holds its turn clocks while the marker is fresh, so
+  a person taking their time is never counted against the agent.
+- `state/teleport.json` — the one live teleport, if there is one: the target
+  repo, the forked session id, and the chat it talks in. Deleted when the
+  session ends, so its absence is what "no teleport is running" means.
 
 ## Where does a new rule go?
 
