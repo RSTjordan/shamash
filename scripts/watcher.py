@@ -1589,14 +1589,15 @@ def service_teleport(tele: dict) -> None:
             # wholesale — so the live session's record has just been
             # overwritten with the new repo and an empty forked id, and a
             # watcher restart in this window would announce the wrong
-            # session. Say plainly that the mode is busy (in the chat the
-            # request came from), then put the live record back.
+            # session. Put the live record back first (so a failed send
+            # can't leave the file wrong), then say plainly that the mode
+            # is busy, in the chat the request came from.
+            write_teleport_state(live_state)
             notify_owner_teleport(
                 st.get("channel") or live_state.get("channel"),
                 strings.t("tp_busy", repo=live_state.get("repo", "?"),
                           release=RELEASE_WORD),
                 st.get("jid") or live_state.get("jid"))
-            write_teleport_state(live_state)
         if time.time() - live_state.get("last_activity", 0) > TELEPORT_IDLE_S:
             release_teleport(tele, "idle")
         return
