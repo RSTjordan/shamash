@@ -36,13 +36,38 @@ Three changes in `main.go`:
 
 ## Build & swap procedure
 
-The exe is locked while running, and a restart-on-failure task will relaunch
-the old exe within seconds of a kill — order matters:
+A restart-on-failure task will relaunch the old exe within seconds of a kill,
+so order matters. Two things that look fine but are not:
 
-    go build -o whatsapp-bridge-new.exe .
-    schtasks /End /TN ShamashBridge
-    taskkill /IM whatsapp-bridge.exe /F
-    move /Y whatsapp-bridge-new.exe whatsapp-bridge.exe
-    schtasks /Run /TN ShamashBridge
+- **Never `taskkill /IM whatsapp-bridge.exe`** — both bridges run an exe of
+  that name, so it kills the other channel too. Kill by `ExecutablePath`.
+- **Windows renames a running `.exe` happily**, so a successful `Move-Item`
+  does not prove the old process is gone, and `/api/health` answers just as
+  cheerfully from the old binary. Verify with a route only the new binary has.
 
-(Same procedure for the contact bridge with `ShamashContactBridge`.)
+```powershell
+$dir = "<install>\bridge\whatsapp-bridge"   # contact: ...\bridge\contact-bridge
+cd $dir
+go build -o whatsapp-bridge-new.exe .
+
+schtasks /End /TN ShamashBridge             # contact: ShamashContactBridge
+Get-CimInstance Win32_Process -Filter "Name='whatsapp-bridge.exe'" |
+    Where-Object { $_.ExecutablePath -eq "$dir\whatsapp-bridge.exe" } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+# Block until the port is free; a live listener means the old exe is still up.
+$deadline = (Get-Date).AddSeconds(30)
+while ((Get-Date) -lt $deadline -and
+       (Get-NetTCPConnection -State Listen -LocalPort 8080 -ErrorAction SilentlyContinue)) {
+    Start-Sleep -Milliseconds 500
+}
+
+Move-Item "$dir\whatsapp-bridge.exe" "$dir\whatsapp-bridge-old.exe" -Force
+Move-Item "$dir\whatsapp-bridge-new.exe" "$dir\whatsapp-bridge.exe"
+schtasks /Run /TN ShamashBridge
+```
+
+Same procedure for the contact bridge (`ShamashContactBridge`, its own dir and
+port) — but the contact exe is a *copy* of the main bridge's freshly built
+binary, not a separate build. Verify with `/api/health` **and** a probe of a
+route the new binary introduced; roll back by moving `-old.exe` back.

@@ -22,6 +22,12 @@ does not re-apply anything itself.
 
 Go patches require a rebuild: build to a temp name, stop the bridge task, swap
 the exe, restart the task (`bridge-log-level.md` has the exact procedure).
+Both channels run an exe named `whatsapp-bridge.exe`, so kill the one you are
+replacing by its **`ExecutablePath`** — `taskkill /IM whatsapp-bridge.exe` takes
+down the other channel with it. And because Windows renames a running exe
+without complaint, a clean-looking swap can leave the old binary serving:
+verify with a route the new build introduced, not with `/api/health` (the old
+binary answers that one too).
 
 Values written as `<from config>` are filled in from the user's `config.json`
 at apply time — patches never contain a real number or chat id.

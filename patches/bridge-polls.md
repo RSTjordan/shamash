@@ -84,9 +84,11 @@ type SendPollResponse struct {
 // needs the poll's message secret, which it stores when it sends or
 // receives the poll). Loopback + bearer auth like everything else.
 type VoteRequest struct {
-    Recipient  string   `json:"recipient"`       // chat JID holding the poll
+    Recipient  string   `json:"recipient"`       // chat JID holding the poll (phone form)
     PollID     string   `json:"poll_id"`         // the poll's message id
-    PollSender string   `json:"poll_sender_jid"` // full JID of the poll's sender
+    PollSender string   `json:"poll_sender_jid"` // full JID of the poll's sender — LID form
+                                                 // for cross-account votes, see "The LID
+                                                 // rule" below; phone form fails the MAC
     PollFromMe bool     `json:"poll_from_me"`    // whether this account sent the poll
     Options    []string `json:"options"`         // option labels to select (empty = clear vote)
 }
@@ -208,6 +210,10 @@ mux.HandleFunc("/api/vote", auth(func(w http.ResponseWriter, r *http.Request) {
     pollInfo := types.MessageInfo{
         MessageSource: types.MessageSource{
             Chat: chatJID, Sender: senderJID, IsFromMe: req.PollFromMe,
+            // Required: getKeyFromInfo only fills the key's Participant
+            // when IsGroup is set, and without a participant the receiver
+            // cannot attribute a group poll's vote.
+            IsGroup: chatJID.Server == types.GroupServer,
         },
         ID: req.PollID,
     }
@@ -228,6 +234,53 @@ mux.HandleFunc("/api/vote", auth(func(w http.ResponseWriter, r *http.Request) {
     _ = json.NewEncoder(w).Encode(SendMessageResponse{Success: true})
 }))
 ```
+
+### The LID rule (cross-account votes)
+
+A vote cast on behalf of one account against a poll created by *another*
+account MUST pass `poll_sender_jid` in **LID** form. Phone form silently
+produces an undecryptable vote: the sender still gets `{"success":true}`,
+and only the receiving bridge notices, with
+
+```
+cipher: message authentication failed
+```
+
+Section 5 handles a failed decryption with `logger.Warnf` and a bare
+`return`, so nothing is ever written to `messages.db` and a caller waiting
+on the vote just times out — that log line on the *receiving* bridge is
+the only place the real error appears, and the first place to look.
+
+The cause is in whatsmeow's `EncryptPollVote`:
+
+```go
+ownID := cli.getOwnLID()
+if pollInfo.Sender.Server == types.DefaultUserServer {
+    ownID = cli.getOwnID()   // phone JID
+}
+```
+
+A phone-form sender flips whatsmeow into encrypting under the voter's
+*phone* identity, while the receiving bridge derives the key from
+`msg.Info.Sender`, which is the voter's **LID**. `generateMsgSecretKey`
+mixes that identity into both the HKDF info and the GCM additional data,
+so the MAC fails. whatsmeow's own retry hack only retries the *orig
+sender* variant, never the *voter* variant, so it cannot recover.
+
+Source the LID from the **voting** bridge's own `store\whatsapp.db`:
+
+```sql
+SELECT lid FROM whatsmeow_lid_map WHERE pn = ?;   -- pn = digits, no @suffix
+```
+
+and send it as `<lid>@lid`. `recipient` stays the **phone-form** chat JID —
+the asymmetry is deliberate: `recipient` is both the send target and the
+key used to look up the stored message secret, and both are keyed by the
+phone-form chat.
+
+This affects `/api/vote` only. A human tapping a poll on their phone is
+unaffected — WhatsApp's own client already encrypts under the correct
+identity.
 
 ## 5. Incoming vote decryption
 
@@ -284,20 +337,75 @@ if pollUpdate := msg.Message.GetPollUpdateMessage(); pollUpdate != nil {
 Note: `StoreMessage` skips rows with empty content AND empty media
 type; `"poll_vote"` is non-empty, so cleared votes are stored.
 
-## Rebuild and swap (same procedure as bridge-log-level.md)
+## Rebuild and swap
 
-The bridge source is one tree; both bridge exes build from it.
+The bridge source is ONE tree, and both bridge exes are built from it: the
+main bridge runs `bridge\whatsapp-bridge\whatsapp-bridge.exe`, the contact
+bridge runs `bridge\contact-bridge\whatsapp-bridge.exe`, and the contact
+copy is the *same freshly built binary* copied across — it is never built
+separately.
+
+Two Windows traps make the obvious procedure fail silently:
+
+- **Windows renames a running `.exe` without complaint.** So `Move-Item`
+  succeeding proves nothing about whether the old process died, and the
+  swap can appear to work while the old binary keeps serving.
+- **`/api/health` is answered just as happily by the old binary.** It is
+  useless as a swap check. Probe a route that only the NEW binary has:
+  an empty `POST /api/poll` returns **400** from the new binary and
+  **404** from the old.
+
+Also never `taskkill /IM whatsapp-bridge.exe` — both bridges share that
+image name, so it kills the other channel too. Kill by `ExecutablePath`.
 
 ```powershell
-cd <install>\bridge\whatsapp-bridge
-go build -o whatsapp-bridge-new.exe .
-schtasks /End /TN ShamashBridge
-# wait for the exe to unlock, then:
-Move-Item whatsapp-bridge.exe whatsapp-bridge-old.exe -Force
-Move-Item whatsapp-bridge-new.exe whatsapp-bridge.exe
-schtasks /Run /TN ShamashBridge
-# repeat for the contact bridge task/exe if the contact channel is enabled
+$root = "<install>\bridge"
+cd "$root\whatsapp-bridge"
+go build -o whatsapp-bridge-new.exe .    # must compile clean before anything is stopped
+
+# --- swap one bridge; run this block once per bridge ---
+$dir  = "$root\whatsapp-bridge"          # contact bridge: "$root\contact-bridge"
+$task = "ShamashBridge"                  # contact bridge: "ShamashContactBridge"
+$port = 8080                             # each channel's port comes from config.json
+
+schtasks /End /TN $task
+# Kill by ExecutablePath — NOT by image name; the other bridge shares it.
+Get-CimInstance Win32_Process -Filter "Name='whatsapp-bridge.exe'" |
+    Where-Object { $_.ExecutablePath -eq "$dir\whatsapp-bridge.exe" } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+
+# Block until the port is actually free — the restart-on-failure task can
+# relaunch the old exe, and a live listener means the old one is still up.
+$deadline = (Get-Date).AddSeconds(30)
+while ((Get-Date) -lt $deadline -and
+       (Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue)) {
+    Start-Sleep -Milliseconds 500
+}
+
+Move-Item "$dir\whatsapp-bridge.exe" "$dir\whatsapp-bridge-old.exe" -Force
+# Main bridge: move the new build in. Contact bridge: copy that same exe.
+Move-Item "$root\whatsapp-bridge\whatsapp-bridge-new.exe" "$dir\whatsapp-bridge.exe"
+#   ...for the contact bridge use instead:
+#   Copy-Item "$root\whatsapp-bridge\whatsapp-bridge.exe" "$dir\whatsapp-bridge.exe"
+
+schtasks /Run /TN $task
 ```
 
-Verify with `/api/health` (connected: true) on both ports before
-declaring done. Roll back by swapping the -old exe back.
+Verify **both** checks on **both** ports before declaring done:
+
+```powershell
+$token = (Get-Content "$dir\store\.bridge-token" -Raw).Trim()
+$h = @{ Authorization = "Bearer $token"; "Content-Type" = "application/json" }
+
+# 1. connected
+Invoke-RestMethod "http://127.0.0.1:$port/api/health" -Headers $h
+
+# 2. NEW binary is the one serving — expect 400 (not 404)
+try   { Invoke-RestMethod "http://127.0.0.1:$port/api/poll" -Method Post -Headers $h -Body '{}' }
+catch { "status: $($_.Exception.Response.StatusCode)" }   # BadRequest = new, NotFound = old
+```
+
+A `404` means the old process is still serving: repeat the kill, confirm
+`Get-NetTCPConnection -LocalPort $port` is empty, then re-run the task.
+
+Roll back by stopping the task the same way and moving `-old.exe` back.
