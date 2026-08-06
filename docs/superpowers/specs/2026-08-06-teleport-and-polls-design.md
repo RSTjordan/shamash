@@ -415,6 +415,12 @@ the runner itself — the watcher owns both. The mechanism:
   candidates, one numbered option per session
   ("1) <repo> · <age> · <description>", ≤ 100 chars — numbering guarantees
   label uniqueness, which the vote hashes require), plus a *Cancel* option.
+  A candidate that looks open at the desk carries a **⚠️ marker inside its
+  own label** ("1) <repo> · <age> ⚠️ · <description>") and the poll question
+  explains what the marker means. The fork warning of F2.2 is load-bearing
+  at the moment of choice, and in practice the picker — not the
+  single-candidate confirm — is the surface the owner actually answers on,
+  so the warning has to live in both.
 
 ## F2.4 The teleported runner — mode takeover
 
@@ -547,7 +553,12 @@ one-liner must never land there while the conversation runs in the
 self-chat). The trigger rule passes it (`--jid`, from the command
 envelope's chat notation); empty falls back to the owner's self-chat,
 never the group. Each routed batch refreshes it to the live
-conversation's chat.
+conversation's chat. If that send fails or comes back unconfirmed, the
+announcement is retried on the **other channel's bridge**, addressed to the
+owner's own JID (the main channel's self-chat, the contact channel's 1:1) —
+never to a channel default, because that default is the group; and if no
+bridge takes it, the announcement stays log-only, which is why the resume
+one-liner goes to the log first and unconditionally.
 
 `teleport.py` writes the `requested` phase (with `forked_session_id` empty);
 the watcher fills the rest when it takes over. A watcher restart while a

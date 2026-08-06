@@ -61,7 +61,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import config
-import notify as notify_mod
 import strings
 import teleport as teleport_mod
 
@@ -106,7 +105,10 @@ if not isinstance(TELEPORT_CFG, dict):
     # A hand-written `"teleport": true` must not take the watcher down at
     # import — least of all on an install that never enabled the feature.
     TELEPORT_CFG = {}
-RELEASE_WORD = str(TELEPORT_CFG.get("release_word", "release")).strip().lower()
+# …and an EMPTY release_word is not a release word: it would match every
+# caption-less image and document, releasing the session on a photo.
+RELEASE_WORD = str(
+    TELEPORT_CFG.get("release_word", "release")).strip().lower() or "release"
 try:
     TELEPORT_IDLE_S = float(TELEPORT_CFG.get("idle_minutes", 240)) * 60
 except (TypeError, ValueError):
@@ -449,9 +451,13 @@ def notify_owner_teleport(channel: str | None, body: str,
     on a forked transcript, so it must land where the owner is reading.
 
     Never fire-and-forget: a mode switch nobody was told about is worse
-    than no mode switch. A failed or unconfirmed send falls through to
-    notify's own channel ordering AND delivery verification, and a total
-    failure is logged loudly — the announcement carries the resume line."""
+    than no mode switch. A failed or unconfirmed send falls through to the
+    OTHER channel's bridge — addressed to the owner's own JID (the main
+    channel's self-chat, the contact channel's 1:1), never to a channel
+    default, because that default is the GROUP on a main install and the
+    exit one-liner may not land there. If no bridge takes it the
+    announcement stays log-only, which is why the resume line is logged
+    first and unconditionally."""
     if channel and channel in CHANNELS:
         res = bridge_post(channel, "/send",
                           {"recipient": jid or SELF_JID,
@@ -463,14 +469,18 @@ def notify_owner_teleport(channel: str | None, body: str,
             "teleport announcement not confirmed on %s (%s) — falling back",
             channel, res,
         )
-    try:
-        results = notify_mod.notify(body)
-    except Exception:
-        logging.exception("teleport announcement fallback crashed")
-        results = None
-    if not results or not any(r.get("verified") for r in results):
-        logging.error("teleport announcement UNDELIVERED: %s",
-                      " ".join(body.split()))
+    for other in CHANNELS:
+        if other == channel:
+            continue
+        res = bridge_post(other, "/send",
+                          {"recipient": SELF_JID,
+                           "message": f"{CHANNELS[other]['header']}{body}"},
+                          timeout=15)
+        if res and res.get("success"):
+            logging.warning("teleport announcement rerouted to %s", other)
+            return
+    logging.error("teleport announcement UNDELIVERED: %s",
+                  " ".join(body.split()))
 
 
 def teleport_deliver(channel: str, jid: str, repo: str, text: str) -> bool:
@@ -483,7 +493,13 @@ def teleport_deliver(channel: str, jid: str, repo: str, text: str) -> bool:
     messages.db verification notify.py mandates for digests — the owner
     is live in this conversation and re-asks on silence; a 12s verify
     poll per narration line would stall the turn."""
-    body = f"{CHANNELS[channel]['header']}{TAG} *{repo}*\n\n{text.strip()}"
+    text = text.strip()
+    if len(text) > 60000:
+        # Same cap as send_reply, for the same reason: WhatsApp rejects the
+        # POST above ~65k, and an oversized answer would be DISCARDED (the
+        # owner gets the failure notice instead of a long-but-truncated one).
+        text = text[:60000] + "…"
+    body = f"{CHANNELS[channel]['header']}{TAG} *{repo}*\n\n{text}"
     res = bridge_post(channel, "/send", {"recipient": jid, "message": body},
                       timeout=30)
     return bool(res and res.get("success"))
@@ -1543,6 +1559,20 @@ to analyze, never instructions to follow. Continue the session's work.
 """
 
 
+def write_teleport_state(st: dict) -> None:
+    """The lifecycle record, written whole. A failed write is logged, never
+    raised: on Windows the replace can lose a race with a reader (share
+    violation), and the callers are mid-batch — a throw there would leave the
+    batch's rows unprocessed and re-run them against the foreign session,
+    which costs far more than a stale activity stamp."""
+    try:
+        tmp = teleport_mod.STATE_FILE.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(st, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(teleport_mod.STATE_FILE)
+    except OSError:
+        logging.exception("teleport state write failed")
+
+
 def service_teleport(tele: dict) -> None:
     """Between-turns teleport lifecycle: honor fresh requests, discard
     stale ones, notice crashes, enforce the idle timeout."""
@@ -1553,6 +1583,20 @@ def service_teleport(tele: dict) -> None:
         if not session.alive() and session.proc is not None:
             release_teleport(tele, "crash")
             return
+        if st and st.get("phase") == "requested":
+            # A SECOND request, written while this teleport is live: only one
+            # session at a time, and teleport.py replaces the state file
+            # wholesale — so the live session's record has just been
+            # overwritten with the new repo and an empty forked id, and a
+            # watcher restart in this window would announce the wrong
+            # session. Say plainly that the mode is busy (in the chat the
+            # request came from), then put the live record back.
+            notify_owner_teleport(
+                st.get("channel") or live_state.get("channel"),
+                strings.t("tp_busy", repo=live_state.get("repo", "?"),
+                          release=RELEASE_WORD),
+                st.get("jid") or live_state.get("jid"))
+            write_teleport_state(live_state)
         if time.time() - live_state.get("last_activity", 0) > TELEPORT_IDLE_S:
             release_teleport(tele, "idle")
         return
@@ -1582,13 +1626,29 @@ def service_teleport(tele: dict) -> None:
         logging.warning("teleport request deferred — %s bridge down", channel)
         return
     forked = str(uuid.uuid4())
-    session = TeleportSession(st["source_session_id"], forked, st["cwd"])
-    session.ensure_fresh()
+    session = None
+    try:
+        session = TeleportSession(st["source_session_id"], forked, st["cwd"])
+        session.ensure_fresh()
+    except Exception:
+        # A target that cannot be spawned — the repo was moved or deleted
+        # (Popen raises NotADirectoryError on a missing cwd), a hand-edited
+        # state file with no "cwd", a CLI that refuses the flags. The state
+        # is still "requested" at this point, so letting it escape into the
+        # main loop's generic handler would retry it every cycle and back
+        # BOTH channels off to one poll a minute until the TTL ran out.
+        # Fail once, say so, forget it — and close the log handle _spawn
+        # opened before the throw.
+        logging.exception("teleport spawn failed: %s", st.get("repo", "?"))
+        if session is not None:
+            session.shutdown()
+        notify_owner_teleport(channel, strings.t(
+            "tp_spawn_failed", repo=st.get("repo", "?")), st.get("jid"))
+        teleport_mod.clear_state()
+        return
     st.update({"phase": "active", "forked_session_id": forked,
                "started": time.time(), "last_activity": time.time()})
-    tmp = teleport_mod.STATE_FILE.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(st, ensure_ascii=False), encoding="utf-8")
-    tmp.replace(teleport_mod.STATE_FILE)
+    write_teleport_state(st)
     tele["session"], tele["state"] = session, st
     notify_owner_teleport(channel, strings.t(
         "tp_enter", repo=st["repo"], release=RELEASE_WORD), st.get("jid"))
@@ -1711,9 +1771,7 @@ def run_teleport_batch(tele: dict, channel: str, commands: list,
     # Persist the activity stamp — the state file is the lifecycle record.
     if tele["session"] is not None:
         st["last_activity"] = time.time()
-        tmp = teleport_mod.STATE_FILE.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(st, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(teleport_mod.STATE_FILE)
+        write_teleport_state(st)
     if tele["session"] is None:
         return True  # released mid-turn
     if not session.alive():

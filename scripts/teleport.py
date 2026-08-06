@@ -34,12 +34,15 @@ CFG = config.load()
 KIT_ROOT = pathlib.Path(CFG["root"]).resolve()
 STATE_FILE = CFG["paths"]["state"] / "teleport.json"
 PROJECTS_DIR = pathlib.Path.home() / ".claude" / "projects"
-REQUEST_TTL = 900.0  # must outlive the turn that WRITES the request: the
+REQUEST_TTL = 1800.0  # must OUTLIVE the turn that WRITES the request: the
 # watcher only services requests between turns, so the creating turn has to
-# end first — and that turn can legitimately sit for approvals.APPROVAL_TIMEOUT
-# (900s) on a single card. A tighter TTL throws away a teleport the owner
-# already confirmed by poll, which is what a 120s value did on a live install
-# whenever the agent hit one approval card after calling this module. Staleness
+# end first — and that turn can legitimately sit a full
+# approvals.APPROVAL_TIMEOUT (900s) on a single card, plus the rest of its
+# work and a poll cycle. Hence 2× the approval timeout, not equal to it:
+# equality would make the request expire exactly as such a turn ends. A
+# tighter TTL throws away a teleport the owner already confirmed by poll,
+# which is what a 120s value did on a live install whenever the agent hit
+# one approval card after calling this module. Staleness
 # from a watcher that was DOWN is not this constant's job — the watcher clears
 # and announces any state file it finds at startup; what remains here is the
 # bound on the bridge-down deferral in service_teleport.
@@ -129,11 +132,16 @@ def _discover_in(projects_dir, limit=40):
         cwd = _cwd_of(entries)
         if not cwd:
             continue
+        # A cwd that no longer resolves to a directory is an unspawnable
+        # candidate — the repo was moved or deleted since that session ran,
+        # and the runner's Popen would raise on it. Drop it here rather
+        # than offer it in the picker.
         try:
-            if pathlib.Path(cwd).resolve() == KIT_ROOT:
-                continue
+            resolved = pathlib.Path(cwd).resolve()
         except OSError:
-            pass
+            continue
+        if resolved == KIT_ROOT or not resolved.is_dir():
+            continue
         out.append({
             "session_id": f.stem,
             "cwd": cwd,
@@ -232,10 +240,15 @@ def _pick(candidates, channel, jid):
     and possibly renumber, making equality against our originals lossy) —
     and the chosen label is matched by its `N) ` prefix, never by string
     equality, so truncation and vote-content mangling can't turn a valid
-    pick into a phantom cancel."""
+    pick into a phantom cancel.
+
+    A candidate that looks open at the desk is marked ⚠️ in its own label:
+    the picker wins over _confirm in practice, so without the marker the
+    fork warning would never reach the owner. tp_pick_q explains it."""
     import ask as ask_mod
     top = candidates[:5]
-    opts = [f"{i + 1}) {c['repo']} · {_age_str(c['mtime'])} · {c['description']}"[:100]
+    opts = [f"{i + 1}) {c['repo']} · {_age_str(c['mtime'])}"
+            f"{' ⚠️' if looks_open(c) else ''} · {c['description']}"[:100]
             for i, c in enumerate(top)]
     opts.append(strings.t("tp_cancel"))
     res = ask_mod.ask(strings.t("tp_pick_q"), opts, timeout=POLL_TIMEOUT,
@@ -257,6 +270,20 @@ def request(hint, channel, jid=""):
     default is the group, and these polls list the repos open on this
     machine. A missing jid therefore falls back to the owner's own
     self-chat — the narrowest chat that certainly reaches them."""
+    if not CFG.get("features", {}).get("teleport", False):
+        # The script is pre-approved to run cardless, so with the feature
+        # off it would still enumerate every repo on the machine into a
+        # poll and write a request nothing services — announced weeks
+        # later as a stale drop. Refuse before discovering anything.
+        return {"requested": False, "reason": "teleport is disabled in config"}
+    live = read_state()
+    if live and live.get("phase") == "active":
+        # One teleport at a time (F2 non-goal). Refusing HERE also protects
+        # the live record: write_request replaces the state file whole, so a
+        # second request would overwrite the running session's row.
+        return {"requested": False,
+                "reason": f"a teleport into {live.get('repo', '?')} is "
+                          "already running — say the release word first"}
     effective_jid = jid or CFG["self_jid"]
     candidates = discover()
     if not candidates:
@@ -287,6 +314,14 @@ def main():
                     help="the chat the request came from — where every "
                          "teleport announcement is addressed")
     args = ap.parse_args()
+    if not CFG.get("features", {}).get("teleport", False):
+        # Same gate as request(), one level up: --list enumerates the repos
+        # on this machine, which an install that never enabled the feature
+        # has no reason to produce either.
+        print(json.dumps({"requested": False,
+                          "reason": "teleport is disabled in config"},
+                         ensure_ascii=False))
+        return 0
     if args.list:
         print(json.dumps(discover(), ensure_ascii=False, indent=2))
         return 0

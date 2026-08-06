@@ -18,19 +18,27 @@ def _write_transcript(root, munged, session_id, cwd, lines):
     d = root / munged
     d.mkdir(parents=True, exist_ok=True)
     f = d / f"{session_id}.jsonl"
-    payload = [json.dumps({"cwd": cwd, "type": "user",
+    payload = [json.dumps({"cwd": str(cwd), "type": "user",
                            "message": {"role": "user", "content": line}})
                for line in lines]
     f.write_text("\n".join(payload) + "\n", encoding="utf-8")
     return f
 
 
+def _repo(root, name):
+    """A cwd that actually exists — discovery drops candidates whose repo
+    is gone, so a fixture pointing at a fictional path would find nothing."""
+    d = root / "repos" / name
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 class TestDiscover(unittest.TestCase):
     def test_excludes_kit_root_and_extracts_fields(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            _write_transcript(root, "C--x-myrepo", "aaa-111", "C:\\x\\myrepo",
-                              ["fix the login bug"])
+            _write_transcript(root, "C--x-myrepo", "aaa-111",
+                              _repo(root, "myrepo"), ["fix the login bug"])
             _write_transcript(root, "C--kit", "bbb-222", str(teleport.KIT_ROOT),
                               ["scan run"])
             found = teleport._discover_in(root)
@@ -44,14 +52,27 @@ class TestDiscover(unittest.TestCase):
     def test_summary_line_beats_user_message(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
-            f = _write_transcript(root, "C--x-r2", "ccc-333", "C:\\x\\r2",
-                                  ["something"])
+            f = _write_transcript(root, "C--x-r2", "ccc-333",
+                                  _repo(root, "r2"), ["something"])
             with f.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps({"type": "summary",
                                      "summary": "Building the parser"}) + "\n")
             found = teleport._discover_in(root)
             c = next(x for x in found if x["session_id"] == "ccc-333")
             self.assertEqual(c["description"], "Building the parser")
+
+    def test_drops_candidates_whose_repo_is_gone(self):
+        """An offered candidate must be spawnable: Popen(cwd=<deleted dir>)
+        raises, and that throw would land in the watcher's main loop."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            gone = _repo(root, "vanished")
+            _write_transcript(root, "C--x-vanished", "ddd-444", gone, ["work"])
+            self.assertIn("ddd-444",
+                          [c["session_id"] for c in teleport._discover_in(root)])
+            gone.rmdir()
+            self.assertNotIn("ddd-444",
+                             [c["session_id"] for c in teleport._discover_in(root)])
 
 
 class TestMatch(unittest.TestCase):
@@ -86,7 +107,9 @@ class TestRequestState(unittest.TestCase):
             # group, on a main install).
             self.assertEqual(st["jid"], "1234@s.whatsapp.net")
             self.assertTrue(teleport.request_fresh(st))
-            st["requested_at"] = time.time() - 999
+            # Relative to the TTL itself — a hardcoded age silently stops
+            # testing staleness the moment REQUEST_TTL is raised.
+            st["requested_at"] = time.time() - (teleport.REQUEST_TTL + 1)
             self.assertFalse(teleport.request_fresh(st))
             teleport.clear_state()
             self.assertIsNone(teleport.read_state())
@@ -103,6 +126,19 @@ class TestRequestState(unittest.TestCase):
             self.assertEqual(teleport.read_state()["jid"], "")
 
 
+class TestRequestTTL(unittest.TestCase):
+    def test_ttl_outlives_one_approval_card(self):
+        """The watcher services requests only BETWEEN turns, so the turn
+        that wrote the request has to end first — and that turn may sit a
+        full APPROVAL_TIMEOUT on a single card. Equality is not enough:
+        the TTL has to cover the card plus the rest of the turn. approvals
+        is imported HERE and never by teleport.py — the module deliberately
+        carries no runner coupling."""
+        import approvals  # noqa: E402  (test-only import, see docstring)
+        self.assertGreaterEqual(teleport.REQUEST_TTL,
+                                approvals.APPROVAL_TIMEOUT)
+
+
 class TestPickerAddressing(unittest.TestCase):
     """The selection polls enumerate the repos open on this machine, so
     they must never be left to a channel's default recipient — on a
@@ -112,9 +148,11 @@ class TestPickerAddressing(unittest.TestCase):
             "mtime": 0.0, "description": "building the thing",
             "transcript": ""}
 
-    def _request(self, jid, candidates):
+    def _request(self, jid, candidates, feature=True, existing=None):
         """Run the real request() flow with only the ask-level sends
-        stubbed out; returns the jid each picker was handed."""
+        stubbed out; returns the jid each picker was handed. The feature
+        flag is forced because request() refuses outright when it is off —
+        the kit's own config is not the subject of these tests."""
         seen = {}
 
         def fake_confirm(candidate, channel, j):
@@ -125,16 +163,46 @@ class TestPickerAddressing(unittest.TestCase):
             seen["pick"] = j
             return cands[0]
 
-        saved = (teleport.discover, teleport._confirm, teleport._pick)
+        saved = (teleport.discover, teleport._confirm, teleport._pick,
+                 teleport.CFG)
         with tempfile.TemporaryDirectory() as td:
             teleport.STATE_FILE = Path(td) / "teleport.json"
+            if existing is not None:
+                teleport.STATE_FILE.write_text(json.dumps(existing),
+                                               encoding="utf-8")
+            teleport.CFG = dict(teleport.CFG,
+                                features=dict(teleport.CFG["features"],
+                                              teleport=feature))
             teleport.discover = lambda limit=40: list(candidates)
             teleport._confirm, teleport._pick = fake_confirm, fake_pick
             try:
                 res = teleport.request("myrepo", "main", jid)
             finally:
-                teleport.discover, teleport._confirm, teleport._pick = saved
+                (teleport.discover, teleport._confirm, teleport._pick,
+                 teleport.CFG) = saved
             return seen, res, teleport.read_state()
+
+    def test_disabled_feature_refuses_before_discovery(self):
+        """The script is pre-approved to run cardless — with the feature
+        off it must not poll the owner with every repo on the machine."""
+        seen, res, st = self._request("", [self.CAND], feature=False)
+        self.assertFalse(res["requested"])
+        self.assertIn("disabled", res["reason"])
+        self.assertEqual(seen, {})
+        self.assertIsNone(st)
+
+    def test_second_request_refused_while_one_is_active(self):
+        """write_request replaces the state file whole, so a request taken
+        while a teleport runs would overwrite the live session's record."""
+        active = {"phase": "active", "repo": "otherrepo", "channel": "main",
+                  "jid": "", "source_session_id": "s0",
+                  "forked_session_id": "f0", "cwd": "C:\\x\\other",
+                  "requested_at": 0.0, "started": 0.0, "last_activity": 0.0}
+        seen, res, st = self._request("", [self.CAND], existing=active)
+        self.assertFalse(res["requested"])
+        self.assertIn("otherrepo", res["reason"])
+        self.assertEqual(seen, {})
+        self.assertEqual(st, active)  # the live record is untouched
 
     def test_missing_jid_falls_back_to_the_self_chat(self):
         seen, res, st = self._request("", [self.CAND])
