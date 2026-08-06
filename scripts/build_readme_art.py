@@ -124,6 +124,73 @@ def build_hero(browser: Path, source: Path, out_name: str) -> Path:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def build_day(browser: Path) -> Path:
+    """The 'A normal Tuesday' transcript — a whole day of the product in one
+    picture, and the only asset here that shows the digest itself."""
+    html = WELCOME.read_text(encoding="utf-8")
+
+    # Anchor on the section: the welcome document has a SECOND .phone on its
+    # last page (the five things to try), and a bare search would find
+    # whichever happens to come first.
+    section = html[html.index("A normal Tuesday") :]
+    transcript = extract_block(section, '<div class="phone">')
+    style = re.search(r"<style>.*?</style>", html, re.S).group(0)
+
+    page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8">{style}
+<style>
+  /* Off the printed page the transcript has no column to sit in. Give it the
+     welcome document's own text measure so the bubbles wrap where they do in
+     the PDF, and its paper so it does not float on white. */
+  body{{background:var(--paper);margin:0;padding:9mm 8mm;width:174mm}}
+</style></head><body>{transcript}</body></html>"""
+
+    tmp = Path(tempfile.mkdtemp(prefix="shamash-art-"))
+    try:
+        src = tmp / "day.html"
+        src.write_text(page, encoding="utf-8")
+        out = OUT_DIR / "a-normal-tuesday.png"
+        subprocess.run(
+            [
+                str(browser),
+                "--headless",
+                "--disable-gpu",
+                "--hide-scrollbars",
+                f"--screenshot={out}",
+                # 174mm at 96dpi, plus the padding above. Height is generous
+                # and the result is trimmed to the ink below.
+                f"--window-size=730,1180",
+                f"--force-device-scale-factor={SCALE}",
+                "--virtual-time-budget=6000",
+                src.as_uri(),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=180,
+        )
+        trim(out)
+        return out
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def trim(png: Path, pad: int = 18) -> None:
+    """Crop the flat paper margin a fixed window size leaves below the last
+    bubble. Without this the README shows a tall band of nothing."""
+    from PIL import Image, ImageChops
+
+    im = Image.open(png).convert("RGB")
+    bg = Image.new("RGB", im.size, im.getpixel((0, 0)))
+    box = ImageChops.difference(im, bg).getbbox()
+    if box is None:  # a blank render — leave it for the size check to catch
+        return
+    left, top, right, bottom = box
+    w, h = im.size
+    im.crop(
+        (max(0, left - pad), max(0, top - pad),
+         min(w, right + pad), min(h, bottom + pad))
+    ).save(png)
+
+
 def build_architecture() -> Path:
     html = WELCOME.read_text(encoding="utf-8")
     svg = re.search(r"<svg viewBox=\"0 0 640 300\".*?</svg>", html, re.S).group(0)
@@ -169,6 +236,12 @@ def main() -> int:
             print(f"FAILED — {hero} is missing or suspiciously small")
             return 1
         print(f"OK  {hero}  ({hero.stat().st_size // 1024} KB)")
+
+    day = build_day(browser)
+    if not day.exists() or day.stat().st_size < 20_000:
+        print(f"FAILED — {day} is missing or suspiciously small")
+        return 1
+    print(f"OK  {day}  ({day.stat().st_size // 1024} KB)")
 
     arch = build_architecture()
     print(f"OK  {arch}  ({arch.stat().st_size // 1024} KB)")

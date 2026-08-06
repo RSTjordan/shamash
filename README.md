@@ -88,6 +88,14 @@ stage, not the install.
 
 ## What it actually does
 
+A normal Tuesday — the morning digest, a question at 11:20, and a correction at
+18:40 that it writes into its own instructions:
+
+<p align="center">
+  <img src="docs/brand/readme/a-normal-tuesday.png" width="640"
+       alt="A day of messages: the 08:00 digest sorted into Handled, Booked and Needs you; a midday question about a group the owner stopped reading; and an evening instruction to stop replying in that group, which the agent writes into its own rules.">
+</p>
+
 **Out of the box:**
 
 - **Digest, twice a day** — what it did, what needs you, what's on your
