@@ -27,11 +27,15 @@ _ENGLISH = {
     ),
     "card_title": "🔒 *Action blocked — needs your approval*",
     "card_for": "For: {context}",
-    "card_once": "👍 = allow this once",
+    "card_once": "👍 = allow this once (tap the poll below, or react here)",
     "card_always": "❤️ = always — saves a permanent rule ({rules})",
     "card_deny": "👎 = deny",
-    "card_hint": "_(replying 1 / always / 0 works too)_",
+    "card_hint": "_(the poll below is the quick way; replying 1 / always / 0 works too)_",
     "poll_expired": "⏱ This expired — ask me again if still needed.",
+    "poll_approve_q": "Approve? — {tool}",
+    "opt_allow_once": "Allow once",
+    "opt_always": "Always",
+    "opt_deny": "Deny",
 }
 
 _HEBREW = {
@@ -45,11 +49,15 @@ _HEBREW = {
     ),
     "card_title": "🔒 *פעולה נחסמה — צריך את האישור שלך*",
     "card_for": "עבור: {context}",
-    "card_once": "👍 = לאשר פעם אחת",
+    "card_once": "👍 = לאשר פעם אחת (או להצביע בסקר למטה)",
     "card_always": "❤️ = תמיד — נשמר ככלל קבוע ({rules})",
     "card_deny": "👎 = לדחות",
-    "card_hint": "_(אפשר גם לענות 1 / תמיד / 0)_",
+    "card_hint": "_(הסקר למטה הוא הדרך המהירה; אפשר גם לענות 1 / תמיד / 0)_",
     "poll_expired": "⏱ פג תוקף — שלחו שוב אם עדיין רלוונטי.",
+    "poll_approve_q": "לאשר? — {tool}",
+    "opt_allow_once": "אישור",
+    "opt_always": "תמיד",
+    "opt_deny": "דחייה",
 }
 
 _TABLES = {"english": _ENGLISH, "hebrew": _HEBREW}

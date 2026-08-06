@@ -188,6 +188,19 @@ def _atomic_write(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
+ASK_MARKER = STATE_DIR / "ask-open.json"
+
+
+def _ask_marker_fresh(max_age: float = 30.0) -> bool:
+    """An agent-run ask.py subprocess is waiting on the owner — hold the
+    turn clocks like an open card. Stale marker (killed asker) holds
+    nothing."""
+    try:
+        return time.time() - ASK_MARKER.stat().st_mtime < max_age
+    except OSError:
+        return False
+
+
 # ---------------------------------------------------------------- bridge REST
 
 
@@ -863,9 +876,13 @@ class AgentSession:
         turn_end = time.time() + CLAUDE_TURN_MAX
         while True:
             now = time.time()
-            if (now >= self._deadline or now >= turn_end) and self._open_cards:
+            if (now >= self._deadline or now >= turn_end) and (
+                self._open_cards or _ask_marker_fresh()
+            ):
                 # A card the owner has not tapped yet is a human reading their
                 # phone, never a wedge — hold both clocks while one is open.
+                # An ask.py poll the agent itself opened counts the same, and
+                # it runs in a subprocess, so the marker file is its signal.
                 self._deadline = now + CLAUDE_TIMEOUT
                 turn_end = max(turn_end, now + CLAUDE_TIMEOUT)
                 continue
@@ -1206,9 +1223,9 @@ def _is_command(channel: str, row) -> bool:
         return False
     if not ((content or "").strip() or media):
         return False
-    if media == "reaction":
-        # A 👍 is an answer to an approval card (or just a thumbs-up), never a
-        # command — without this it arrives as a command reading "👍".
+    if media in ("reaction", "poll", "poll_vote"):
+        # Reactions answer cards; polls and their votes belong to ask.py.
+        # None of them may re-run as commands.
         return False
     if CHANNELS[channel]["is_from_me"] == 1:
         # Own-account channel: the agent's sends are is_from_me too, so the
@@ -1298,7 +1315,8 @@ BOTH the original command(s) and these:
 
 
 def build_steer_prompt(channel: str, commands: list) -> str:
-    prompt = STEER_NOTE + "\n".join(_format_commands(channel, commands))
+    prompt = STEER_NOTE + f"(channel: {channel})\n" + "\n".join(
+        _format_commands(channel, commands))
     if CHANNELS[channel]["system_delivers_reply"]:
         prompt += (
             f"\n(Contact-channel rules still apply: your final message text is "
@@ -1317,6 +1335,7 @@ def build_prompt(channel: str, commands: list, first_turn: bool) -> str:
         # Brief first: command text may contain literal placeholder strings.
         prompt = prompt.replace("{BRIEF}", BRIEF.read_text(encoding="utf-8"))
     prompt = prompt.replace("{COMMANDS}", "\n".join(lines))
+    prompt = prompt.replace("{CHANNEL}", channel)
     if first_turn:
         history = recent_history(channel, commands[-1][1], {c[0] for c in commands})
         if history:

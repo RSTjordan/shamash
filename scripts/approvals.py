@@ -20,10 +20,14 @@ and the process waits for a matching control_response. This module is what
 fills that wait: it renders the request as one WhatsApp card, waits for the
 owner to answer it, and turns the answer into a decision.
 
-Answering is one tap: a REACTION on the card (the bridge stores inbound
-reactions as media_type="reaction" rows whose quoted_message_id points back at
-it), so 👍 approves without opening a keyboard. Typing 1 / always / 0 works
-too (English and Hebrew keywords are both accepted).
+Answering is one tap. The card goes out first (it is the legend: what is
+blocked, why, and what "always" would persist), then scripts/ask.py puts the
+same question as a native WhatsApp poll — tapping an option is the fast path
+and needs no keyboard. A REACTION on the card or on the poll counts too (the
+bridge stores inbound reactions as media_type="reaction" rows whose `filename`
+carries the id they target), and so does typing 1 / always / 0 (English and
+Hebrew keywords are both accepted, and they are passed to ask() as aliases so
+they keep their meaning regardless of the poll's option order).
 
   👍 ✅ 👌 🆗 / "1" "yes" "ok" "כן"       -> allow, this once (persists nothing)
   ❤️ 💯 ♾️ / "2" "always" "תמיד"          -> allow + persist the suggested rule
@@ -39,7 +43,6 @@ import datetime
 import json
 import logging
 import pathlib
-import sqlite3
 import sys
 import threading
 import time
@@ -47,16 +50,15 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import config
 import notify
+import ask as ask_mod
 import strings
 
 CFG = config.load()
 ROOT = pathlib.Path(CFG["root"])
 AUDIT = CFG["paths"]["state"] / "approvals.jsonl"
-AGENT_PREFIX = f"\U0001f916 *{CFG['agent_name']}*"
 OWNER = CFG["owner"].get("name") or "the owner"
 
 APPROVAL_TIMEOUT = 900.0  # 15 min, then deny-and-continue
-POLL = 2.0
 
 ONCE = {"1", "כן", "אשר", "אשרתי", "אישור", "ok", "okay", "yes", "y", "go", "כן."}
 ALWAYS = {"2", "תמיד", "אשר תמיד", "always", "always allow", "מעכשיו", "כן תמיד"}
@@ -161,73 +163,11 @@ def card(request: dict, context: str = "") -> str:
     return "\n".join(lines)
 
 
-def _rows_after(channel: dict, since_epoch: float, card_id: str | None) -> list:
-    """The owner's messages and reactions in that chat since the card went out.
-
-    Which rows are the owner's differs per channel: the contact bridge is a
-    separate identity, so the owner is is_from_me=0 there; the main channel
-    lives on the owner's own account, where everything is is_from_me=1 and
-    only the agent header separates the agent's sends. notify.CHANNELS carries
-    the right value per channel.
-    """
-    db = pathlib.Path(channel["db"])
-    inbound = channel.get("is_from_me", 0)
-    try:
-        con = sqlite3.connect("file:" + db.as_posix() + "?mode=ro", uri=True, timeout=5)
-    except sqlite3.Error:
-        return []
-    try:
-        rows = con.execute(
-            "select id, content, media_type, quoted_message_id, timestamp "
-            "from messages where chat_jid = ? and is_from_me = ? "
-            "and cast(strftime('%s', timestamp) as integer) >= ? "
-            "order by strftime('%s', timestamp)",
-            (channel["jid"], inbound, int(since_epoch)),
-        ).fetchall()
-    except sqlite3.Error:
-        logging.exception("approval poll failed")
-        return []
-    finally:
-        con.close()
-    out = []
-    for mid, content, media, quoted, ts in rows:
-        text = (content or "").strip()
-        if media == "reaction":
-            # A reaction only counts as an answer to THIS card.
-            if card_id and quoted and quoted != card_id:
-                continue
-            out.append((mid, text, True))
-        else:
-            if text.startswith(AGENT_PREFIX):  # the agent's own send in the group
-                continue
-            if text:
-                out.append((mid, text, False))
-    return out
-
-
-def _classify(text: str, is_reaction: bool) -> str | None:
-    if is_reaction:
-        emoji = text.replace("️", "")
-        if emoji in {e.replace("️", "") for e in REACT_ALWAYS}:
-            return "always"
-        if emoji in {e.replace("️", "") for e in REACT_DENY}:
-            return "deny"
-        if emoji in {e.replace("️", "") for e in REACT_ONCE}:
-            return "once"
-        return None
-    body = " ".join(text.split()).strip().lower().rstrip("!.")
-    if body in ALWAYS:
-        return "always"
-    if body in ONCE:
-        return "once"
-    if body in DENY:
-        return "deny"
-    return None
-
-
-def _memo_key(request: dict) -> str:
+def _memo_key(request: dict, project_root=None) -> str:
+    # The project the action would run in is part of the identity of the
+    # answer: the same `git push` in another checkout is another question.
     return json.dumps(
-        [request.get("tool_name"), request.get("input")],
+        [str(project_root or ROOT), request.get("tool_name"), request.get("input")],
         ensure_ascii=False, sort_keys=True,
     )
 
@@ -261,7 +201,8 @@ def auto_ok(request: dict) -> bool:
     return True  # Glob/Grep with no path search the project cwd
 
 
-def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT) -> dict:
+def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT,
+        project_root=None) -> dict:
     """Put a blocked action to the owner and wait for the answer.
 
     Returns {"response": <control_response payload>, "consumed": [row ids],
@@ -269,7 +210,7 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT) -> 
     must be marked processed by the caller, otherwise the owner's "1" is
     picked up a second time as a fresh command.
     """
-    key = _memo_key(request)
+    key = _memo_key(request, project_root)
     memo = _MEMO.get(key)
     if memo is not None:
         return {"response": memo, "consumed": [], "verdict": "memo"}
@@ -301,31 +242,35 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT) -> 
     card_id = delivered["id"]
     _card_opened(channel["name"])
     started = time.time()
-    # A second of slack: the card's own row must not be re-read as an answer,
-    # but the owner's reply can land in the same DB second.
-    since = started - 1
-
-    verdict = None
-    consumed: list[str] = []
+    # The card above is the legend; the poll is the tap surface. The legacy
+    # answer forms survive as ask()'s aliases: the emoji sets classify
+    # reactions on either the card (also_watch_ids) or the poll, and the
+    # keyword sets classify text — checked BEFORE positional digits, so "2"
+    # still means "always" even on a two-option card.
+    once_l, always_l, deny_l = (strings.t("opt_allow_once"),
+                                strings.t("opt_always"), strings.t("opt_deny"))
+    options = [once_l, always_l, deny_l] if suggestions else [once_l, deny_l]
     try:
-        while time.time() - started < timeout:
-            time.sleep(POLL)
-            for mid, body, is_reaction in _rows_after(channel, since, card_id):
-                if mid == card_id or mid in consumed:
-                    continue
-                call = _classify(body, is_reaction)
-                if call is None:
-                    continue  # unrelated message — leave it to be a normal command
-                consumed.append(mid)
-                if len(CONSUMED_IDS) > 500:
-                    CONSUMED_IDS.clear()
-                CONSUMED_IDS.add(mid)
-                verdict = call
-                break
-            if verdict:
-                break
+        outcome = ask_mod.ask(
+            strings.t("poll_approve_q", tool=request.get("tool_name", "?")),
+            options,
+            timeout=timeout,
+            channel=channel["name"],
+            also_watch_ids=(card_id,),
+            text_fallback=False,  # the card IS the numbered legend already
+            text_aliases={once_l: ONCE, always_l: ALWAYS, deny_l: DENY},
+            reaction_aliases={once_l: REACT_ONCE, always_l: REACT_ALWAYS,
+                              deny_l: REACT_DENY},
+        )
     finally:
         _card_closed(channel["name"])
+    verdict = {once_l: "once", always_l: "always", deny_l: "deny"}.get(
+        outcome["chosen"])
+    consumed = outcome["consumed_ids"]
+    for mid in consumed:
+        if len(CONSUMED_IDS) > 500:
+            CONSUMED_IDS.clear()
+        CONSUMED_IDS.add(mid)
 
     if verdict == "always":
         inner = {"behavior": "allow", "updatedInput": request.get("input") or {}}
@@ -347,7 +292,8 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT) -> 
 
     if verdict == "always":
         _MEMO[key] = inner
-    _log({"verdict": verdict, "tool": request.get("tool_name"),
+    _log({"verdict": verdict, "answered_by": outcome["answered_by"],
+          "tool": request.get("tool_name"),
           "input": request.get("input"), "channel": channel["name"],
           "card_id": card_id, "consumed": consumed,
           "waited_s": round(time.time() - started, 1)})
@@ -370,7 +316,12 @@ CLASSIFIER_MARKERS = (
     "denied by the Claude Code auto mode classifier",
     "Blocked by classifier",
 )
-LOCAL_SETTINGS = ROOT / ".claude" / "settings.local.json"
+
+
+def _local_settings(project_root=None):
+    """Where an "always" rule is persisted — the project the agent is actually
+    running in, which is the teleport cwd when there is one, else the kit."""
+    return pathlib.Path(project_root or ROOT) / ".claude" / "settings.local.json"
 
 
 def is_classifier_denial(text: str) -> bool:
@@ -415,10 +366,11 @@ def derive_rule(tool: str, tool_input: dict) -> dict | None:
     return {"toolName": tool}
 
 
-def add_local_rule(rule: dict) -> bool:
+def add_local_rule(rule: dict, project_root=None) -> bool:
     """Persist one allow-rule to .claude/settings.local.json."""
+    settings = _local_settings(project_root)
     try:
-        data = json.loads(LOCAL_SETTINGS.read_text(encoding="utf-8"))
+        data = json.loads(settings.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         data = {}
     perms = data.setdefault("permissions", {})
@@ -429,19 +381,20 @@ def add_local_rule(rule: dict) -> bool:
         return True
     allow.append(entry)
     try:
-        LOCAL_SETTINGS.parent.mkdir(parents=True, exist_ok=True)
-        LOCAL_SETTINGS.write_text(
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(
             json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
         )
     except OSError:
-        logging.exception("could not write %s", LOCAL_SETTINGS)
+        logging.exception("could not write %s", settings)
         return False
     _log({"verdict": "rule-added", "rule": entry})
     return True
 
 
 def ask_after_denial(tool: str, tool_input: dict, context: str = "",
-                     timeout: float = APPROVAL_TIMEOUT) -> dict:
+                     timeout: float = APPROVAL_TIMEOUT,
+                     project_root=None) -> dict:
     """Card for a classifier denial. Any approval asks for a retry; only an
     "always" answer writes the rule, so it survives into future runs. A
     "once" (or a memo of an earlier answer) approves the retry and persists
@@ -456,10 +409,11 @@ def ask_after_denial(tool: str, tool_input: dict, context: str = "",
               "destination": "localSettings"}] if rule else []
         ),
     }
-    outcome = ask(request, context=context, timeout=timeout)
+    outcome = ask(request, context=context, timeout=timeout,
+                  project_root=project_root)
     verdict = outcome["verdict"]
     if verdict == "always" and rule:
-        add_local_rule(rule)
+        add_local_rule(rule, project_root)
     outcome["retry"] = verdict in ("once", "always", "memo")
     return outcome
 
