@@ -245,16 +245,21 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT,
     # that window must not fall before ask()'s scan origin — degraded-poll is
     # exactly when the card reaction is the only answer form left.
     card_sent = time.time()
-    _card_opened(channel["name"])
-    started = time.time()
     # The card above is the legend; the poll is the tap surface. The legacy
     # answer forms survive as ask()'s aliases: the emoji sets classify
     # reactions on either the card (also_watch_ids) or the poll, and the
     # keyword sets classify text — checked BEFORE positional digits, so "2"
     # still means "always" even on a two-option card.
+    #
+    # Resolved BEFORE the card is marked open: anything that throws between
+    # _card_opened() and the try/finally below leaves the channel marked
+    # card-open forever, and the wait tick then skips that channel for the
+    # rest of the watcher's life.
     once_l, always_l, deny_l = (strings.t("opt_allow_once"),
                                 strings.t("opt_always"), strings.t("opt_deny"))
     options = [once_l, always_l, deny_l] if suggestions else [once_l, deny_l]
+    _card_opened(channel["name"])
+    started = time.time()
     try:
         outcome = ask_mod.ask(
             strings.t("poll_approve_q", tool=request.get("tool_name", "?")),
