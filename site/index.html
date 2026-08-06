@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>שמש (Shamash) — ראש לשכה לוואטסאפ שלך, על המחשב שלך</title>
-<meta name="description" content="סוכן AI אישי לוואטסאפ שרץ על המחשב שלך, על מנוי ה-Claude שכבר יש לך. בלי ענן, בלי API key, בלי טלמטריה. קוד פתוח.">
-<meta property="og:title" content="שמש (Shamash) — ראש לשכה לוואטסאפ שלך">
-<meta property="og:description" content="רץ על המחשב שלך, על מנוי ה-Claude שלך. שום דבר לא מדווח הביתה.">
+<title>Shamash — a chief of staff for your WhatsApp, on your own machine</title>
+<meta name="description" content="A personal WhatsApp AI agent that runs on your computer, on the Claude subscription you already pay for. No cloud, no API key, no telemetry. Open source.">
+<meta property="og:title" content="Shamash — a chief of staff for your WhatsApp">
+<meta property="og:description" content="Runs on your machine, on your Claude subscription. Nothing phones home.">
 <meta property="og:image" content="https://myshamash.com/shamash-avatar.png">
 <link rel="icon" type="image/png" href="shamash-avatar.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,16 +32,12 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{scroll-behavior:smooth}
-  body{
-    font-family:"Assistant","Segoe UI",Arial,sans-serif;
-    background:var(--night);color:var(--wax);line-height:1.65;
-  }
+  body{font-family:"Assistant","Segoe UI",Arial,sans-serif;background:var(--night);color:var(--wax);line-height:1.65}
   ::selection{background:var(--flame);color:var(--night)}
   a:focus-visible,button:focus-visible{outline:2px solid var(--flame);outline-offset:3px;border-radius:4px}
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
   .display{font-family:"Suez One","Assistant",serif;font-weight:400;letter-spacing:.2px}
 
-  /* ---------- nav ---------- */
   nav{display:flex;align-items:center;gap:18px;padding:20px 0}
   nav .logo{display:flex;align-items:center;gap:10px;font-size:1.15rem;text-decoration:none;color:var(--wax)}
   nav .logo img{width:34px;height:34px;border-radius:50%}
@@ -49,12 +45,11 @@
   nav a.link{color:var(--smoke);text-decoration:none;font-weight:600;font-size:.95rem}
   nav a.link:hover{color:var(--flame)}
 
-  /* ---------- hero ---------- */
   header{position:relative;overflow:hidden}
   .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:36px;align-items:center;padding:40px 0 72px}
-  .hero h1{font-size:clamp(2.3rem,5.6vw,3.6rem);line-height:1.18}
+  .hero h1{font-size:clamp(2.1rem,5.2vw,3.3rem);line-height:1.18}
   .hero h1 em{font-style:normal;color:var(--flame)}
-  .hero p.sub{margin-top:20px;font-size:1.18rem;color:var(--smoke);max-width:36ch}
+  .hero p.sub{margin-top:20px;font-size:1.18rem;color:var(--smoke);max-width:40ch}
   .hero .ctas{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
   .btn{display:inline-block;padding:13px 28px;border-radius:12px;font-weight:700;font-size:1.05rem;text-decoration:none;transition:transform .12s ease,box-shadow .12s ease,background .12s ease}
   .btn:active{transform:translateY(1px)}
@@ -62,15 +57,14 @@
   .btn.primary:hover{background:#ffc985;box-shadow:0 0 44px rgba(255,182,89,.4)}
   .btn.ghost{border:1px solid var(--line);color:var(--wax);background:transparent}
   .btn.ghost:hover{border-color:var(--flame);color:var(--flame)}
-  .hero .kicker{font-weight:700;font-size:.92rem;letter-spacing:.14em;color:var(--flame);margin-bottom:16px}
+  .hero .kicker{font-weight:700;font-size:.92rem;letter-spacing:.14em;color:var(--flame);margin-bottom:16px;text-transform:uppercase}
 
   /* ---------- the lit phone (signature) ---------- */
   .scene{position:relative;display:flex;justify-content:center;padding:12px 0}
   .scene .glow{
     position:absolute;inset:-6% -10%;z-index:0;pointer-events:none;
     background:radial-gradient(closest-side at 50% 42%, rgba(255,182,89,.38), rgba(255,122,69,.12) 55%, transparent 78%);
-    filter:blur(12px);
-    animation:breathe 6s ease-in-out infinite alternate;
+    filter:blur(12px);animation:breathe 6s ease-in-out infinite alternate;
   }
   @keyframes breathe{from{opacity:.8;transform:scale(.98)}to{opacity:1;transform:scale(1.03)}}
   .phone{
@@ -87,7 +81,7 @@
   .wa-chat{padding:14px 12px 18px;display:flex;flex-direction:column;gap:8px;min-height:360px}
   .wa-day{align-self:center;background:#182229;color:var(--wa-time);font-size:.72rem;padding:4px 12px;border-radius:8px;margin-bottom:4px}
   .msg{max-width:86%;padding:8px 10px 6px;border-radius:10px;font-size:.9rem;line-height:1.5;color:#e9edef;position:relative;box-shadow:0 1px 1px rgba(0,0,0,.3)}
-  .msg .meta{display:block;text-align:left;font-size:.66rem;color:var(--wa-time);margin-top:3px;direction:ltr}
+  .msg .meta{display:block;text-align:right;font-size:.66rem;color:var(--wa-time);margin-top:3px}
   .msg .meta .ticks{color:var(--wa-tick)}
   .msg.in{background:var(--wa-in);margin-inline-end:auto;border-start-start-radius:3px}
   .msg.out{background:var(--wa-out);margin-inline-start:auto;border-start-end-radius:3px}
@@ -98,7 +92,6 @@
   .typing i:nth-child(2){animation-delay:.18s}
   .typing i:nth-child(3){animation-delay:.36s}
   @keyframes dot{0%,60%,100%{opacity:.35;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
-  /* arrival choreography */
   .msg,.wa-day{opacity:0;transform:translateY(7px);animation:arrive .4s ease forwards}
   .wa-day{animation-delay:.3s}
   .m1{animation-delay:.7s}
@@ -107,18 +100,13 @@
   .m4{animation-delay:4.15s}
   @keyframes arrive{to{opacity:1;transform:translateY(0)}}
   @keyframes fadeout{to{opacity:0;visibility:hidden}}
-  .mascot-peek{
-    position:absolute;z-index:2;width:140px;inset-inline-end:calc(50% + 138px);bottom:-26px;
-    filter:drop-shadow(0 12px 22px rgba(0,0,0,.5));
-  }
+  .mascot-peek{position:absolute;z-index:2;width:140px;inset-inline-end:calc(50% + 138px);bottom:-26px;filter:drop-shadow(0 12px 22px rgba(0,0,0,.5))}
   .scene-caption{position:absolute;bottom:-46px;inset-inline:0;text-align:center;color:var(--smoke);font-size:.9rem;font-style:italic}
 
-  /* ---------- trust strip ---------- */
   .strip{border-block:1px solid var(--line);padding:16px 0;margin-top:26px}
   .strip .wrap{display:flex;gap:10px 36px;flex-wrap:wrap;justify-content:center;font-weight:600;font-size:.98rem;color:var(--wax)}
   .strip span::before{content:"✓ ";color:var(--flame);font-weight:700}
 
-  /* ---------- sections ---------- */
   section{padding:72px 0}
   h2{font-size:clamp(1.6rem,3.4vw,2.2rem);margin-bottom:10px}
   .lead{color:var(--smoke);font-size:1.08rem;max-width:62ch;margin-bottom:36px}
@@ -130,42 +118,22 @@
   .card h3{font-size:1.08rem;font-weight:700;margin:10px 0 6px}
   .card p{color:var(--smoke);font-size:.97rem}
 
-  /* ---------- how ---------- */
-  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;counter-reset:step}
-  .step{background:var(--night-2);border:1px solid var(--line);border-radius:16px;padding:20px}
-  .step::before{
-    counter-increment:step;content:counter(step);
-    display:inline-flex;align-items:center;justify-content:center;
-    width:34px;height:34px;border-radius:50%;
-    background:linear-gradient(160deg,var(--flame),var(--ember));color:#160f07;
-    font-weight:700;margin-bottom:12px;font-family:"Suez One",serif;
-  }
-  .step h3{font-size:1.02rem;margin-bottom:4px}
-  .step p{font-size:.93rem;color:var(--smoke)}
-
-  /* ---------- honesty ---------- */
-  .honest{
-    background:var(--night-2);border:1px solid rgba(255,182,89,.5);border-radius:18px;padding:30px;
-    box-shadow:inset 0 0 44px rgba(255,182,89,.05);display:grid;gap:12px;
-  }
+  .honest{background:var(--night-2);border:1px solid rgba(255,182,89,.5);border-radius:18px;padding:30px;box-shadow:inset 0 0 44px rgba(255,182,89,.05);display:grid;gap:12px}
   .honest ul{list-style:none;display:grid;gap:12px}
-  .honest li{padding-inline-start:26px;position:relative}
+  .honest li{padding-inline-start:26px;position:relative;color:var(--smoke)}
   .honest li::before{content:"🕯";position:absolute;inset-inline-start:0;font-size:.85rem;top:2px}
   .honest li strong{color:var(--wax)}
-  .honest li{color:var(--smoke)}
   .honest a{color:var(--flame);font-weight:700}
 
-  /* ---------- install ---------- */
-  .install-box{background:var(--night-2);border:1px solid var(--line);border-radius:18px;padding:30px}
+  .install-box{background:var(--night-2);border:1px solid rgba(255,182,89,.5);border-radius:18px;padding:30px;box-shadow:inset 0 0 44px rgba(255,182,89,.05)}
   .install-box ol{margin:16px 0 0;padding-inline-start:22px;display:grid;gap:14px;font-size:1.02rem}
   .install-box ol a{color:var(--flame)}
-  .prompt{direction:ltr;text-align:left;background:#070f14;border:1px solid #223138;border-radius:12px;padding:18px;font-family:var(--mono);font-size:.88rem;line-height:1.6;color:#ffd9a8;position:relative;margin-top:12px;white-space:pre-wrap}
+  .prompt{background:#070f14;border:1px solid #223138;border-radius:12px;padding:18px;font-family:var(--mono);font-size:.88rem;line-height:1.6;color:#ffd9a8;position:relative;margin-top:12px;white-space:pre-wrap}
   .copy-btn{position:absolute;top:10px;right:10px;background:var(--flame);border:none;color:#160f07;font-family:"Assistant",sans-serif;font-weight:700;font-size:.85rem;padding:7px 14px;border-radius:8px;cursor:pointer}
   .copy-btn:hover{background:#ffc985}
   .install-note{margin-top:14px;font-size:.95rem;color:var(--smoke)}
   .install-note a{color:var(--flame)}
 
-  /* ---------- footer ---------- */
   footer{padding:44px 0 60px;color:var(--smoke);font-size:.95rem;border-top:1px solid var(--line)}
   footer .wrap{display:flex;gap:12px 30px;flex-wrap:wrap;align-items:center}
   footer a{color:var(--smoke)}
@@ -194,42 +162,41 @@
 <header>
   <div class="wrap">
     <nav>
-      <a class="logo display" href="/"><img src="shamash-avatar.png" alt="שמש"> שמש · Shamash</a>
+      <a class="logo display" href="/"><img src="shamash-avatar.png" alt="Shamash"> Shamash</a>
       <div class="spacer"></div>
+      <a class="link" href="#install">Install</a>
       <a class="link" href="https://github.com/RSTjordan/shamash">GitHub</a>
-      <a class="link" href="https://github.com/RSTjordan/shamash/blob/main/docs/welcome/Welcome-to-Shamash.pdf">המדריך המאויר</a>
-      <a class="link" href="en.html">EN</a>
     </nav>
     <div class="hero">
       <div>
-        <p class="kicker">קוד פתוח · רץ מקומית · על המנוי שכבר יש לך</p>
-        <h1 class="display">ראש לשכה<br>בוואטסאפ שלך.<br><em>על המחשב שלך.</em></h1>
-        <p class="sub">קורא את הצ'אטים פעמיים ביום ושולח דייג'סט אחד: מה הוא סגר לבד, מה הוא קבע ביומן, ומה מחכה לך — ולמה. ואפשר פשוט לכתוב לו.</p>
+        <p class="kicker">Open source · Runs locally · On the subscription you already have</p>
+        <h1 class="display">A chief of staff<br>in your WhatsApp.<br><em>On your own machine.</em></h1>
+        <p class="sub">It reads your chats twice a day and sends one digest: what it closed on its own, what it put on your calendar, and what's waiting for you — and why. And you can simply text it.</p>
         <div class="ctas">
-          <a class="btn primary" href="#install">להתקנה ←</a>
-          <a class="btn ghost" href="#what">מה הוא עושה?</a>
+          <a class="btn primary" href="#install">Install →</a>
+          <a class="btn ghost" href="#what">What does it do?</a>
         </div>
       </div>
-      <div class="scene" aria-label="הדגמה: שיחת וואטסאפ עם שמש">
+      <div class="scene" aria-label="Demo: a WhatsApp conversation with Shamash">
         <div class="glow"></div>
         <div class="phone">
           <div class="wa-head">
             <img src="shamash-avatar.png" alt="">
-            <div class="wa-id"><strong>שמש</strong><span>מחובר · על המחשב שלך</span></div>
+            <div class="wa-id"><strong>Shamash</strong><span>connected · on your machine</span></div>
             <span class="wa-dots">⋮</span>
           </div>
           <div class="wa-chat">
-            <div class="wa-day">היום</div>
-            <div class="msg in m1">בוקר טוב ☀️ שלושה דברים מהלילה:<br>• הטיול של הגן נדחה ליום שלישי<br>• דנה מחכה לתשובה על הפגישה של מחר<br>• החשבונית לרו״ח — עד חמישי<span class="meta">08:00</span></div>
-            <div class="msg out m2">תקבע עם דנה מחר ב־10:00 ותכניס ליומן<span class="meta">08:04 <span class="ticks">✓✓</span></span></div>
+            <div class="wa-day">Today</div>
+            <div class="msg in m1">Good morning ☀️ Three things from overnight:<br>• The class trip moved to Tuesday<br>• Dana is waiting on tomorrow's meeting<br>• Invoice for the accountant — due Thursday<span class="meta">08:00</span></div>
+            <div class="msg out m2">Book Dana for 10:00 tomorrow and put it on my calendar<span class="meta">08:04 <span class="ticks">✓✓</span></span></div>
             <div class="stack">
               <div class="msg in typing" aria-hidden="true"><i></i><i></i><i></i></div>
-              <div class="msg in m4">סגור ✅ קבעתי ביומן ועדכנתי את דנה. בדקתי — אתה פנוי.<span class="meta">08:05</span></div>
+              <div class="msg in m4">Done ✅ It's on your calendar and Dana got a message. I checked — you're free.<span class="meta">08:05</span></div>
             </div>
           </div>
         </div>
         <img class="mascot-peek" src="shamash-mascot.png" alt="">
-        <p class="scene-caption">השַׁמָּשׁ — הנר שמדליק את כל האחרים ואז עומד בצד.</p>
+        <p class="scene-caption">The shamash — the candle that lights all the others, then stands aside.</p>
       </div>
     </div>
   </div>
@@ -237,37 +204,40 @@
 
 <div class="strip">
   <div class="wrap">
-    <span>רץ על מנוי ה-Claude שכבר יש לך</span>
-    <span>בלי API key ובלי חיוב לפי הודעה</span>
-    <span>שום דבר לא מדווח הביתה</span>
-    <span>קוד פתוח, MIT</span>
+    <span>Runs on the Claude subscription you already have</span>
+    <span>No API key, no per-message billing</span>
+    <span>Nothing phones home</span>
+    <span>Open source, MIT</span>
   </div>
 </div>
 
-<section id="what">
+<section id="install">
   <div class="wrap">
-    <h2 class="display">מה הוא באמת עושה</h2>
-    <p class="lead">לא צ'אטבוט. עוזר אישי שמכיר את האנשים שלך, עובד כשאתה לא מסתכל, ויודע מה מותר לו לעשות לבד — כי אתה כתבת לו את זה.</p>
-    <div class="cards">
-      <div class="card"><div class="emoji">📋</div><h3>דייג'סט פעמיים ביום</h3><p>מה נעשה, מה מחכה לך, מה ביומן, אילו מיילים שווים את תשומת הלב שלך. הודעה אחת, לא עשרים.</p></div>
-      <div class="card"><div class="emoji">💬</div><h3>פקודות בצ'אט</h3><p>כותבים לו בוואטסאפ — לסכם קבוצה שהזנחת, למצוא קובץ, לבדוק את היומן, לענות למישהו. הוא עונה בעברית טבעית.</p></div>
-      <div class="card"><div class="emoji">🔀</div><h3>לדבר תוך כדי עבודה</h3><p>נזכרת במשהו באמצע? הודעת המשך נכנסת לתוך המשימה הרצה — כמו עם בן אדם, בלי "חכה שיסיים".</p></div>
-      <div class="card"><div class="emoji">🗂️</div><h3>פרויקטים ארוכים</h3><p>נותנים לו משהו רב-ימי, ומנוע מתוזמן ממשיך לקדם אותו במשמרות מוגבלות עם דיווח אחרי כל אחת. העבודה שורדת את השיחה.</p></div>
-      <div class="card"><div class="emoji">📅</div><h3>יומן</h3><p>קובע פגישות שמבקשים ממך — אחרי שבדק שאתה פנוי. הופך "אשלח מחר" לתזכורת אמיתית.</p></div>
-      <div class="card"><div class="emoji">🔒</div><h3>כרטיסי אישור</h3><p>כל דבר מסוכן נעצר ושואל אותך בוואטסאפ. ריאקציה 👍 והוא ממשיך. אתה תמיד בשליטה.</p></div>
+    <div class="install-box">
+      <h2 class="display">Install</h2>
+      <ol>
+        <li>Install <a href="https://claude.com/claude-code">Claude Code</a> and sign in with a Claude subscription (Pro or Max).</li>
+        <li>Open it in an empty folder and paste this:</li>
+      </ol>
+      <div class="prompt" id="prompt">Clone https://github.com/RSTjordan/shamash into this folder, then read
+install/RUNBOOK.md and carry it out stage by stage. Stop and ask me wherever
+the runbook says to stop. Don't skip the risk gate.<button class="copy-btn" onclick="copyPrompt(this)">Copy</button></div>
+      <p class="install-note">That's it. The installer agent does the rest: builds, asks you the right questions, and finishes with a real WhatsApp message waiting for your reply. About 40 minutes; ~15 of them need you. Windows only for now · <a href="https://github.com/RSTjordan/shamash#readme">Full docs on GitHub</a></p>
     </div>
   </div>
 </section>
 
-<section id="how">
+<section id="what">
   <div class="wrap">
-    <h2 class="display">איך זה עובד</h2>
-    <p class="lead">ארבעה חלקים, כולם אצלך: וואטסאפ ← גשר מקומי ← Claude Code ← הידיים שלו (יומן, מייל, קבצים). הזיכרון שלו הוא תיקיית קבצי טקסט שאתה יכול לפתוח ולערוך.</p>
-    <div class="steps">
-      <div class="step"><h3>הוא רואה</h3><p>הגשר הוא "מכשיר מקושר", כמו WhatsApp Web. ההודעות נשמרות בקובץ על הדיסק שלך — ורק שם.</p></div>
-      <div class="step"><h3>הוא חושב</h3><p>Claude Code רץ על ההודעות החדשות יחד עם קבצי ההנחיה שלך. הודעות קוליות מתומללות מקומית, כולל עברית.</p></div>
-      <div class="step"><h3>הוא פועל</h3><p>יומן, מייל, קבצים — בגבולות שכתבת לו. כל פעולה נרשמת ביומן, ואותה הודעה לעולם לא מטופלת פעמיים.</p></div>
-      <div class="step"><h3>הוא מדווח</h3><p>התשובה חוזרת לאותו צ'אט, ולא נחשבת "נשלחה" עד שהיא מאומתת בבסיס הנתונים.</p></div>
+    <h2 class="display">What it actually does</h2>
+    <p class="lead">Not a chatbot. A personal assistant that knows your people, works while you're not looking, and knows what it's allowed to do on its own — because you wrote that down for it.</p>
+    <div class="cards">
+      <div class="card"><div class="emoji">📋</div><h3>A digest, twice a day</h3><p>What got done, what's waiting for you, what's on the calendar, which emails deserve your attention. One message, not twenty.</p></div>
+      <div class="card"><div class="emoji">💬</div><h3>Commands in chat</h3><p>Text it on WhatsApp — summarize a group you've neglected, find a file, check the calendar, reply to someone.</p></div>
+      <div class="card"><div class="emoji">🔀</div><h3>Talk while it works</h3><p>Remembered something mid-task? A follow-up message merges into the running job — like with a person, no "wait until it finishes".</p></div>
+      <div class="card"><div class="emoji">🗂️</div><h3>Long-running projects</h3><p>Give it something multi-day and a scheduled engine keeps pushing it forward in bounded shifts, reporting after each one.</p></div>
+      <div class="card"><div class="emoji">📅</div><h3>Calendar</h3><p>Books the meetings people ask you for — after checking you're free. Turns "I'll send it tomorrow" into a real reminder.</p></div>
+      <div class="card"><div class="emoji">🔒</div><h3>Approval cards</h3><p>Anything risky stops and asks you on WhatsApp. React 👍 and it continues. You're always in control.</p></div>
     </div>
   </div>
 </section>
@@ -275,50 +245,33 @@
 <section>
   <div class="wrap">
     <div class="honest">
-      <h2 class="display">שלוש שאלות שכדאי לשאול לפני</h2>
+      <h2 class="display">Three questions to ask first</h2>
       <ul>
-        <li><strong>כמה זה עולה?</strong> מנוי Claude שכבר יש לך: עובד על Pro, הכי טוב על Max. אין שום תשלום נוסף לאף אחד — גם לא לנו. אין "לנו".</li>
-        <li><strong>כמה זמן לוקח להתקין?</strong> בערך 40 דקות. את רובן הסוכן עובד לבד; ממך צריך בערך 15 דקות של תשומת לב — ריאיון קצר על האנשים שלך, סריקת QR, ושער סיכונים.</li>
-        <li><strong>מה הסיכונים?</strong> אמיתיים ולא מוסתרים: ההתקנה נותנת להודעות וואטסאפ נתיב אל המחשב שלך, והחיבור הוא בקליינט לא-רשמי (סיכון חסימה נמוך, לא אפס). <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.he.md">קרא את RISKS.he.md לפני שאתה מתקין</a> — המתקין ממילא יעצור ויוודא שקראת.</li>
+        <li><strong>What does it cost?</strong> The Claude subscription you already have: works on Pro, best on Max. No extra payment to anyone — including us. There is no "us".</li>
+        <li><strong>How long does install take?</strong> About 40 minutes. The agent does most of it alone; you spend about 15 minutes of attention — a short interview about your people, a QR scan, and a risk gate.</li>
+        <li><strong>What are the risks?</strong> Real and not hidden: the install gives WhatsApp messages a path onto your computer, and the connection uses an unofficial client (low ban risk, not zero). <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.md">Read RISKS.md before installing</a> — the installer will stop and make sure you did anyway.</li>
       </ul>
-    </div>
-  </div>
-</section>
-
-<section id="install">
-  <div class="wrap">
-    <div class="install-box">
-      <h2 class="display">התקנה</h2>
-      <ol>
-        <li>מתקינים <a href="https://claude.com/claude-code">Claude Code</a> ומתחברים עם מנוי Claude (Pro או Max).</li>
-        <li>פותחים אותו בתיקייה ריקה ומדביקים את זה:</li>
-      </ol>
-      <div class="prompt" id="prompt">Clone https://github.com/RSTjordan/shamash into this folder, then read
-install/RUNBOOK.md and carry it out stage by stage. Stop and ask me wherever
-the runbook says to stop. Don't skip the risk gate.<button class="copy-btn" onclick="copyPrompt(this)">העתק</button></div>
-      <p class="install-note">זהו. הסוכן-המתקין עושה את השאר: בונה, שואל אותך את השאלות הנכונות, ומסיים בהודעת וואטסאפ אמיתית שמחכה לתשובה שלך. Windows בלבד בינתיים · <a href="https://github.com/RSTjordan/shamash#readme">התיעוד המלא ב-GitHub</a></p>
     </div>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <span class="display">שמש · Shamash</span>
+    <span class="display">Shamash · שמש</span>
     <a href="https://github.com/RSTjordan/shamash">GitHub</a>
-    <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.he.md">סיכונים</a>
-    <a href="https://github.com/RSTjordan/shamash/blob/main/docs/welcome/Welcome-to-Shamash.pdf">Welcome PDF</a>
+    <a href="https://github.com/RSTjordan/shamash/blob/main/RISKS.md">Risks</a>
     <a href="https://github.com/RSTjordan/shamash/blob/main/LICENSE">MIT</a>
     <span style="flex:1"></span>
-    <span>נבנה בישראל <span class="heart">♥</span> פרויקט אישי, בלי שרתים ובלי מעקב</span>
+    <span>Built in Israel <span class="heart">♥</span> A personal project — no servers, no tracking</span>
   </div>
 </footer>
 
 <script>
 function copyPrompt(btn){
-  const text = document.getElementById('prompt').innerText.replace(/העתק$|הועתק ✓$/,'').trim();
+  const text = document.getElementById('prompt').innerText.replace(/Copy$|Copied ✓$/,'').trim();
   navigator.clipboard.writeText(text).then(()=>{
-    btn.textContent = 'הועתק ✓';
-    setTimeout(()=>{ btn.textContent = 'העתק'; }, 2000);
+    btn.textContent = 'Copied ✓';
+    setTimeout(()=>{ btn.textContent = 'Copy'; }, 2000);
   });
 }
 </script>
