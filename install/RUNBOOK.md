@@ -134,7 +134,7 @@ Install only what's missing, and only what stage 2 asked for. Use `winget`.
    native polls — `POST /api/poll`, decryption of incoming votes, and the
    loopback `/api/vote` endpoint stage 9d tests with. Without it every
    question the agent asks arrives as numbered text instead of a one-tap
-   poll: it still works, it is just a keyboard every time, forever.
+   poll: it still works, it is just a keyboard every time.
    **Not the frame patch**:
    it needs values from `config.json`, which doesn't exist until stage 6 — it
    is applied in stage 6c, and applying it now with guessed values causes the
@@ -512,14 +512,14 @@ against that bridge's own port and `store\.bridge-token`:
    bridge that sent the poll answers `{"success": true}` and then produces
    nothing at all. That is how WhatsApp multi-device works, not a fault in the
    channel — never write it down as a `false`.
-   - **`contact`:** vote from the MAIN bridge — `POST /api/vote` with
-     `poll_from_me` false and `options: ["two"]`. `recipient` is the contact
-     account's chat JID in phone form; `poll_sender_jid` must be that same
-     account's **LID** form. Phone form silently fails the MAC: the vote is
-     accepted, undecryptable, and dropped by the receiving bridge with only a
-     warning in its log. The rule, the reason, and the `whatsmeow_lid_map`
-     query that yields the LID are in `patches/bridge-polls.md` → *"The LID
-     rule (cross-account votes)"*.
+   - **`contact`:** vote from the MAIN bridge — `POST /api/vote` with the
+     poll's `message_id` as `poll_id`, `poll_from_me` false and
+     `options: ["two"]`. `recipient` is the contact account's chat JID in phone
+     form; `poll_sender_jid` must be that same account's **LID** form. Phone
+     form silently fails the MAC: the vote is accepted, undecryptable, and
+     dropped by the receiving bridge with only a warning in its log. The rule,
+     the reason, and the `whatsmeow_lid_map` query that yields the LID are in
+     `patches/bridge-polls.md` → *"The LID rule (cross-account votes)"*.
    - **`main`:** the owner's account is the only account in that chat, so
      there is no second bridge to vote from — ask them to tap an option on
      their phone. Their phone is another device on the same account, which is
