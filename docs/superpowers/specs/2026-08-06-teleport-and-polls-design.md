@@ -1,7 +1,8 @@
 # Teleport + native polls — design
 
 **Date:** 2026-08-06
-**Status:** approved in brainstorming; revised after design review (R1)
+**Status:** approved in brainstorming; revised after design review (R1) and
+verification pass (R2)
 **Builds on:** the watcher/approvals/notify machinery (`scripts/watcher.py`,
 `scripts/approvals.py`, `scripts/notify.py`), the bridge patch-doc system
 (`patches/`), and Claude Code's `--resume` / `--fork-session` session model.
@@ -65,13 +66,16 @@ and pick it up at the desk again.
 ## F1.0 Feasibility spike (build-order step 0)
 
 Before the patch doc is written: a ~20-minute spike that creates a poll and
-votes on it on **both** channel types — the contact channel (a normal 1:1
-chat) and the main channel's self-chat ("message yourself"). The open
-question is whether WhatsApp supports polls in the self-chat and whether the
-owner's own vote comes back to the bridge as a visible poll-update event.
-If self-chat polls don't round-trip, the main channel *defaults* to the
-numbered-text fallback (F1.2) instead of treating it as a rare error path,
-and this spec's F1 sections apply poll-first to the contact channel only.
+votes on it on all **three** surfaces the kit can send to — the contact
+channel (a normal 1:1 chat), the main channel's self-chat ("message
+yourself"), and the main channel's *group* (on group installs `notify.py`
+sends to `group_jid`, a different WhatsApp surface with possibly different
+poll behavior). The open questions are whether WhatsApp supports polls on
+each surface and whether the owner's own vote comes back to the bridge as a
+visible poll-update event. Any surface that doesn't round-trip *defaults*
+to the numbered-text fallback (F1.2) instead of treating it as a rare error
+path, and this spec's F1 sections apply poll-first to the surfaces that
+passed.
 
 ## F1.1 Bridge patch: `patches/bridge-polls.md`
 
@@ -149,7 +153,8 @@ sending it *waits for the answer*.
 
 ```python
 ask(question: str, options: list[str], timeout: float = 900.0,
-    selectable_count: int = 1, channel: str | None = None) -> dict
+    selectable_count: int = 1, channel: str | None = None,
+    also_watch_ids: list[str] = (), text_fallback: bool = True) -> dict
 # returns {"chosen": "<option label>" | None,   # None = timeout
 #          "answered_by": "poll" | "reaction" | "text" | None,
 #          "channel": "contact" | "main" | None,
@@ -157,6 +162,12 @@ ask(question: str, options: list[str], timeout: float = 900.0,
 #          "consumed_ids": ["<row id>", ...],   # rows that were the answer
 #          "fallback_used": bool}
 ```
+
+`also_watch_ids`: extra message ids whose *reactions* also count as answers
+— approvals passes its card's id, so a 👍 on the card (the message that
+literally says "👍 = allow this once") keeps working (F1.3).
+`text_fallback=False` suppresses the numbered-text fallback for callers
+whose accompanying message already is the legend (F1.3).
 
 `channel=None` = `notify.py`'s ordered fallback (contact first, main after).
 A **named** channel means that channel *only* — no fallback. Teleport and
@@ -173,10 +184,14 @@ clamped to `[1, len(options)]` (whatsmeow silently coerces bad values to
 **CLI** (for the agent in prompts):
 
 ```
-py -3 scripts/ask.py --option "A" --option "B" [--timeout 240] "Question?"
+py -3 scripts/ask.py --option "A" --option "B" [--timeout 240]
+                     [--channel contact|main] "Question?"
 ```
 
 Prints the same JSON. Exit 0 when answered, 1 on timeout/undeliverable.
+`--channel` exists because the two channels are indistinguishable by chat
+JID (the self-chat JID appears in both); the agent reads the value from the
+command envelope, which now names it explicitly (F1.5).
 The CLI default timeout is **240s**, deliberately lower than the library
 default: an agent-run `ask.py` lives inside a tool call, under the CLI's
 own tool ceilings and the watcher's idle window (see the marker below).
@@ -188,20 +203,30 @@ Prompts tell the agent to set its shell tool's timeout ≥ 300s for the call.
    delivery, poll `messages.db` (2s interval, like `approvals.py`) for an
    answer from the owner's side of that channel, in **three forms**:
    - a `poll_vote` row whose `quoted_message_id`/`filename` is the poll id;
-   - a **reaction** on the poll message (`media_type="reaction"`,
-     `filename` = poll id), classified through the same emoji sets
-     approvals uses today;
+   - a **reaction** on the poll message or on any id in `also_watch_ids`
+     (`media_type="reaction"`, `filename` = target id), classified through
+     the same emoji sets approvals uses today;
    - a text keyword / bare number / exact option text in that chat.
+   The wait loop skips the poll's own row by id — on the main channel the
+   poll question is an `is_from_me` row with **no** channel header, so the
+   `AGENT_PREFIX` filter cannot catch it and only the id check keeps the
+   question from answering itself (the same guard `approvals.py` applies to
+   its card row today).
 2. **Open-ask marker:** while waiting, `ask.py` maintains
    `state/ask-open.json` (touched every poll cycle; contents: channel and
    poll id). The watcher's turn clocks treat a *fresh* marker (mtime < 30s)
    like an open approval card — an open question to a human is never a
-   wedge. A stale marker (a killed `ask.py`) holds nothing.
+   wedge. A stale marker (a killed `ask.py`) holds nothing. Marker writes
+   are best-effort (swallow `OSError` — concurrent askers share the path
+   on Windows); a missed touch costs one clock-hold cycle, nothing more.
 3. **Numbered-text fallback:** if the poll POST fails (old bridge without
    the patch, endpoint 404, bridge down — or the F1.0 spike ruled polls out
    on this channel), send a normal text message through `notify.notify()`
    listing numbered options, and wait for a text reply that is a bare
    number or exact option text. `fallback_used: true` in the result.
+   Skipped entirely when `text_fallback=False`: the caller's own message
+   already carries the legend, and a second numbered message would just say
+   the same thing twice.
 4. **Timeout:** returns `chosen: None` — and sends a short quoted notice on
    the poll ("⏱ this expired — ask me again if still needed", localized),
    so a late tap is never a silent black hole. Callers must degrade the way
@@ -232,16 +257,20 @@ changes:
   "always" option appears only when a persistable rule suggestion exists
   (exactly when today's card shows its ❤️ line). Single-select.
 - **Every current answer form still works**: a 👍/❤️/👎 reaction (on the
-  poll *or* the card) and the text keywords (`1` / `always` / `0`, English
+  poll *or* the card — approvals passes the card's message id as
+  `also_watch_ids`) and the text keywords (`1` / `always` / `0`, English
   and Hebrew) classify exactly as today — `ask()`'s three-form wait (F1.2)
   is what implements this. One-tap muscle memory built on 👍 is never
-  punished.
+  punished. The `strings.py` card legend is updated to match the new
+  surface ("tap the poll below — or 👍 this message").
 - **Bug fix folded in:** `_rows_after` currently filters reactions on
   `quoted_message_id`, but the bridge stores a reaction's target in
   `filename` — so today *any* reaction in the chat answers an open card.
   The move to `ask()`'s wait loop fixes the column and the bug together.
-- If the poll can't be delivered, the flow degrades to exactly today's
-  card-only behavior (`ask.py`'s fallback doing the work).
+- Approvals calls `ask(..., text_fallback=False)`: the card already IS the
+  numbered legend, so when the poll can't be delivered the flow degrades to
+  exactly today's card-only behavior — `ask()` just waits, sending nothing
+  extra.
 - **Rule writes become target-aware.** `add_local_rule` today writes to the
   kit root's `.claude/settings.local.json` unconditionally. Approvals gain
   a `project_root` parameter: for the normal resident it stays the kit
@@ -274,9 +303,16 @@ One paragraph added to the kit prompts that talk to the owner
 > When you need the owner to choose from a known set of options (which
 > session, which draft, which time slot — any real multi-choice question),
 > send it as a WhatsApp poll:
-> `py -3 scripts/ask.py --option "..." --option "..." "question"` — set
-> your shell tool's timeout to at least 300s and wait for its JSON answer.
+> `py -3 scripts/ask.py --channel <channel> --option "..." --option "..."
+> "question"` — the channel is named in the command envelope; set your
+> shell tool's timeout to at least 300s and wait for its JSON answer.
 > Never ask "reply 1/2/3" in text. Open-ended questions stay normal text.
+
+To make that possible, the watcher's command envelope gains an explicit
+`channel: contact|main` line alongside the timestamp/chat/message-id line —
+the agent must never *infer* the channel (the contact-only delivery note
+would work today, but an inference is one refactor away from wrong; the two
+channels share the self-chat JID, so the message itself can't disambiguate).
 
 So the poll itself never becomes an approval card: the kit ships allow
 entries in `.claude/settings.json` for
@@ -339,9 +375,11 @@ teleport section in `command.md` teaches the agent to recognize the intent.
 **Trigger → takeover handoff.** The resident agent cannot spawn or route to
 the runner itself — the watcher owns both. The mechanism:
 
-1. The agent runs `py -3 scripts/teleport.py --request "<free-text hint>"`
+1. The agent runs
+   `py -3 scripts/teleport.py --request "<free-text hint>" --channel <channel>`
    (pre-approved in `.claude/settings.json`, F1.5; same ≥ 300s tool-timeout
-   rule as `ask.py`).
+   rule as `ask.py`; the channel comes from the command envelope's channel
+   line, same as F1.5).
 2. `teleport.py` does discovery, runs the selection UX below via
    `ask(channel=<the channel the trigger arrived on>)` — polls bound to
    that channel only, never falling through to a shared chat — and, on a
@@ -465,7 +503,10 @@ that line contains everything done from the phone).
    wait-tick **before** the open-card guard and before the steer branch —
    the release word must work even while a card is open or a turn is
    running — and it kills an in-flight turn (`kill()`, not a graceful
-   wait): release means *now*.
+   wait): release means *now*. A release-killed batch is marked done and
+   its failure notice suppressed — the exit announcement is the only
+   message the owner gets, never "I couldn't complete this command" for a
+   turn *they* ended on purpose.
 2. **Idle timeout** — no owner message on the teleported channel for
    `teleport.idle_minutes` (default 240). Announced, not silent.
 3. **Crash** — the runner process exiting mid-mode auto-releases with an
