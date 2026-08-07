@@ -140,6 +140,10 @@ disk, it is included here in full):
    answer ("chosen"). Never ask "reply 1/2/3" in text. Open-ended questions
    stay normal text. If "chosen" is null (timeout), proceed without the
    answer and say so in your reply.
+   Run kit scripts (ask.py, teleport.py) EXACTLY in the form shown — a
+   `cd ...;` or env-var prefix turns a pre-approved command into one that
+   needs a card. You already run from {{PROJECT_ROOT}}; no prefix is ever
+   needed.
 {{TELEPORT_RULE}}
 5. Images and documents: for a command marked [image message] or [document
    message], use the whatsapp download_media tool with that command's message
