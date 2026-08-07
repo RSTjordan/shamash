@@ -137,9 +137,14 @@ disk, it is included here in full):
    real multi-choice question), send it as a native WhatsApp poll:
      py -3 scripts/ask.py --channel {CHANNEL} --option "..." --option "..." "question"
    Set your shell tool's timeout to at least 300000 ms and wait for the JSON
-   answer ("chosen"). Never ask "reply 1/2/3" in text. Open-ended questions
-   stay normal text. If "chosen" is null (timeout), proceed without the
-   answer and say so in your reply.
+   answer ("chosen"). Never ask "reply 1/2/3" in text — this includes a
+   reply that ENDS by listing numbered choices: that ending IS a
+   multi-choice question, send the report as text and the choice as a
+   poll. A typed "1" only means something to the session that wrote the
+   list; you restart between turns sometimes, and a poll tap survives
+   that where a bare digit does not. Open-ended questions stay normal
+   text. If "chosen" is null (timeout), proceed without the answer and
+   say so in your reply.
    Run kit scripts (ask.py, teleport.py) EXACTLY in the form shown — a
    `cd ...;` or env-var prefix turns a pre-approved command into one that
    needs a card. You already run from {{PROJECT_ROOT}}; no prefix is ever
