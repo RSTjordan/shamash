@@ -137,6 +137,12 @@ def _rule_labels(suggestions: list) -> list[str]:
 
 
 def card(request: dict, context: str = "") -> str:
+    """The card states WHAT wants to run and why it stopped — nothing about
+    how to answer. On a poll-capable channel the poll right under it is
+    self-evidently the answer surface (the owner said so themselves); the
+    how-to legend exists separately (_legend) for the surfaces where no
+    poll is coming. The one answer-related thing the card keeps is which
+    rule an "always" would save — the poll option can't carry that."""
     tool = request.get("tool_name", "?")
     what = _summarize(tool, request.get("input") or {})
     reason = (request.get("decision_reason") or "approval required").strip()
@@ -149,10 +155,17 @@ def card(request: dict, context: str = "") -> str:
     ]
     if context:
         lines.append(strings.t("card_for", context=context))
-    lines += [
-        "",
-        strings.t("card_once"),
-    ]
+    if rules:
+        lines += ["", strings.t("card_rules", rules=", ".join(rules[:2]))]
+    return "\n".join(lines)
+
+
+def _legend(request: dict) -> str:
+    """The how-to-answer block, for channels where no poll follows the card:
+    there the reactions and text replies ARE the interface, so they must be
+    taught."""
+    rules = _rule_labels(request.get("permission_suggestions"))
+    lines = [strings.t("card_once")]
     if rules:
         lines.append(strings.t("card_always", rules=", ".join(rules[:2])))
     lines += [
@@ -245,6 +258,12 @@ def ask(request: dict, context: str = "", timeout: float = APPROVAL_TIMEOUT,
     # that window must not fall before ask()'s scan origin — degraded-poll is
     # exactly when the card reaction is the only answer form left.
     card_sent = time.time()
+    if not ask_mod._poll_capable(channel["name"]):
+        # No poll is coming on this surface — the reactions/text legend IS
+        # the interface there, so it follows the card as its own message,
+        # quoting it. Poll-capable channels never see it: the poll under
+        # the card explains itself.
+        ask_mod._send_text(channel, _legend(request), quote=card_id)
     # The card above is the legend; the poll is the tap surface. The legacy
     # answer forms survive as ask()'s aliases: the emoji sets classify
     # reactions on either the card (also_watch_ids) or the poll, and the
