@@ -17,13 +17,16 @@ decision — this file only ever reads cfg["active_channels"]:
 Latency layers: an instant "working on it" signal — WhatsApp's own typing…
 bubble on channels that support it (typing_ack), a text ack on the rest; an
 optional warm whisper daemon for voice notes (features.voice_notes); one
-long-lived stream-json `claude` process (recycled after SESSION_MAX_TURNS
-turns / SESSION_MAX_AGE seconds / prompt edits, pre-spawned warm). The
-agent's between-tool-calls narration is forwarded as "> "-quoted messages.
+long-lived stream-json `claude` process (respawned after SESSION_MAX_TURNS
+turns / SESSION_MAX_AGE seconds, pre-spawned warm). The agent's
+between-tool-calls narration is forwarded as "> "-quoted messages.
 
-Memory across session recycles: the first turn of every new session carries
-the last HISTORY_LIMIT messages of that chat (recent_history) — otherwise the
-agent wakes up amnesiac in the middle of an ongoing conversation. Self-reload:
+Memory: respawns RESUME the resident's conversation (--resume against the
+chain recorded in SESSION_CHAIN), so recycles, crashes and watcher restarts
+keep its memory. A FRESH conversation starts only when the rendered prompt
+changed, once nightly after NIGHT_REFRESH_HOUR, or after a failed turn —
+and its first turn carries the last HISTORY_LIMIT messages of the chat
+(recent_history) so even the fresh start wakes up oriented. Self-reload:
 a change to this file restarts the watcher between turns (restart_self), so
 an edit is never a silent no-op waiting for someone to remember the restart.
 
@@ -178,6 +181,12 @@ STEER_MAX = 5  # injections per turn before falling back to after-turn handling
 MAX_ATTEMPTS = 2
 SESSION_MAX_TURNS = 8
 SESSION_MAX_AGE = 2 * 3600
+NIGHT_REFRESH_HOUR = 4  # the first spawn on a new day from this hour on
+# starts a FRESH conversation — the one deliberate memory seam of the day,
+# placed where nobody is awake to feel it
+SESSION_CHAIN = STATE_DIR / "resident-session.json"  # the resident's session
+# id + conversation birth + prompt stamp: what lets a respawn (recycle,
+# crash, watcher restart) RESUME the conversation instead of starting blank
 TMP_MAX_AGE = 7 * 86400
 HISTORY_LIMIT = 30  # messages of the chat replayed into a fresh session
 HISTORY_MAX_CHARS = 6000
@@ -741,6 +750,9 @@ class AgentSession:
     # run a SECOND claude without the two fighting over one pidfile or log.
     PIDFILE = SESSION_PIDFILE
     LOG_NAME = "agent-session.log"
+    # Where this resident's conversation chain is recorded. None = no
+    # chaining (TeleportSession brings its own resume flags).
+    CHAIN_STATE = SESSION_CHAIN
 
     def __init__(self):
         self.proc: subprocess.Popen | None = None
@@ -748,6 +760,15 @@ class AgentSession:
         self.turns = 0
         self.born = 0.0
         self.prompt_stamp: tuple | None = None
+        self.session_id = ""
+        self.fresh_start = 0.0  # when the current CONVERSATION began (the
+        # process respawns much more often than the conversation restarts)
+        self.conversation_new = True
+        self.force_fresh = False  # set by a failed turn: a broken resume
+        # must not be retried into forever
+        self._spawn_was_resume = False
+        if self.CHAIN_STATE is not None:
+            self._load_chain()
         self._stderr_f = None
         self.injected = 0  # messages steered into the turn in flight
         self._deadline = 0.0  # current turn's wall-clock limit (inject extends)
@@ -766,32 +787,95 @@ class AgentSession:
                 stamps.append(0.0)
         return tuple(stamps)
 
+    def _load_chain(self) -> None:
+        """Adopt the recorded conversation, if any — this file is what lets a
+        watcher restart hand the resident its memory back instead of a blank
+        slate. The prompt stamp travels with the conversation, not the
+        process: the conversation's first turn carried THAT prompt."""
+        try:
+            st = json.loads(self.CHAIN_STATE.read_text(encoding="utf-8"))
+            self.session_id = str(st.get("session_id", ""))
+            self.fresh_start = float(st.get("fresh_start", 0.0))
+            stamp = st.get("prompt_stamp")
+            self.prompt_stamp = tuple(stamp) if stamp else None
+        except (OSError, ValueError, TypeError):
+            self.session_id = ""
+
     def alive(self) -> bool:
         return self.proc is not None and self.proc.poll() is None
+
+    def _night_refresh_due(self) -> bool:
+        """True from NIGHT_REFRESH_HOUR onward on any day after the one the
+        conversation started — the scheduled fresh start that keeps a resumed
+        conversation from growing without bound."""
+        if not self.fresh_start:
+            return True
+        now, started = time.localtime(), time.localtime(self.fresh_start)
+        return (now.tm_hour >= NIGHT_REFRESH_HOUR
+                and (now.tm_year, now.tm_yday)
+                != (started.tm_year, started.tm_yday))
+
+    def _hard_due(self) -> bool:
+        """A FRESH conversation (new session id, full prompt, history replay)
+        instead of a resume: no chain yet, the rendered prompt changed since
+        the conversation began, the nightly refresh, or a turn failure."""
+        return (not self.session_id
+                or self.prompt_stamp is None
+                or self._current_stamp() != self.prompt_stamp
+                or self._night_refresh_due()
+                or self.force_fresh)
 
     def stale(self) -> bool:
         return (
             self.turns >= SESSION_MAX_TURNS
             or time.time() - self.born > SESSION_MAX_AGE
             or self._current_stamp() != self.prompt_stamp
+            or self._night_refresh_due()
         )
 
     def ensure_fresh(self) -> None:
-        """Guarantee a live, non-stale session (respawning loses chat memory,
-        which is why staleness only triggers between turns, never mid-turn)."""
+        """Guarantee a live, non-stale session. Respawns RESUME the resident's
+        conversation (memory intact); only _hard_due starts a new one — which
+        is why staleness still only triggers between turns, never mid-turn."""
         if not self.alive() or self.stale():
             self._spawn()
 
     def _extra_argv(self) -> list:
         """Argv appended just before the approvals flag — a subclass's own
         session flags (--resume/--fork-session/--session-id) live here."""
-        return []
+        if self.CHAIN_STATE is None or not self.session_id:
+            return []
+        if self.conversation_new:
+            return ["--session-id", self.session_id]
+        return ["--resume", self.session_id]
+
+    @property
+    def first_turn(self) -> bool:
+        """True only on the first turn of a NEW conversation: a resumed
+        respawn kept its memory, so it takes the follow-up prompt, not the
+        full brief + history replay a blank session needs."""
+        return self.conversation_new and self.turns == 0
 
     def _cwd(self) -> str:
         return str(ROOT)
 
     def _spawn(self) -> None:
+        # Fresh-vs-resume is decided BEFORE shutdown() forgets the old
+        # process: a resumed process that died without completing a single
+        # turn points at an unresumable transcript — resuming it again would
+        # loop on the same corpse.
+        doa = (self._spawn_was_resume and self.turns == 0
+               and self.proc is not None and self.proc.poll() is not None)
+        fresh = self.CHAIN_STATE is None or self._hard_due() or doa
         self.shutdown()
+        if fresh:
+            self.prompt_stamp = self._current_stamp()
+            if self.CHAIN_STATE is not None:
+                self.session_id = str(uuid.uuid4())
+                self.fresh_start = time.time()
+        self.conversation_new = fresh
+        self._spawn_was_resume = not fresh
+        self.force_fresh = False
         log_path = LOGS_DIR / self.LOG_NAME
         try:
             if log_path.exists() and log_path.stat().st_size > 2_000_000:
@@ -835,13 +919,23 @@ class AgentSession:
         ).start()
         self.turns = 0
         self.born = time.time()
-        self.prompt_stamp = self._current_stamp()
         try:
             self.PIDFILE.write_text(str(self.proc.pid), encoding="utf-8")
         except OSError:
             pass
+        if self.CHAIN_STATE is not None:
+            try:
+                self.CHAIN_STATE.write_text(json.dumps({
+                    "session_id": self.session_id,
+                    "fresh_start": self.fresh_start,
+                    "prompt_stamp": list(self.prompt_stamp or ()),
+                }), encoding="utf-8")
+            except OSError:
+                pass
         logging.info(
-            "%s spawned (pid %s)", type(self).__name__, self.proc.pid
+            "%s spawned (pid %s, %s)", type(self).__name__, self.proc.pid,
+            "fresh conversation" if self.conversation_new
+            else "resumed " + self.session_id[:8],
         )
 
     @staticmethod
@@ -1179,6 +1273,8 @@ class TeleportSession(AgentSession):
 
     PIDFILE = STATE_DIR / "teleport-session.pid"
     LOG_NAME = "teleport-session.log"
+    CHAIN_STATE = None  # its resume flags are its own (_extra_argv below);
+    # it must never read or write the normal resident's chain
 
     def __init__(self, source_session_id: str, forked_session_id: str, cwd: str):
         super().__init__()
@@ -1311,12 +1407,11 @@ def fetch_new(channel: str, last_ts: str) -> list:
 
 
 def recent_history(channel: str, chat_jid: str, exclude: set) -> str:
-    """The tail of this chat, replayed into the first turn of a new session.
-
-    The resident session dies every SESSION_MAX_TURNS turns / SESSION_MAX_AGE
-    seconds, and every earlier message dies with it — without this the agent
-    wakes up amnesiac in the middle of an ongoing conversation and asks about
-    things it was told an hour ago.
+    """The tail of this chat, replayed into the first turn of a NEW
+    conversation. Respawns resume the old conversation and skip this; only
+    the deliberate fresh starts (nightly, prompt change, failure recovery)
+    need it — without it those wake up amnesiac in the middle of an ongoing
+    conversation and ask about things they were told an hour ago.
     """
     ch = CHANNELS[channel]
     try:
@@ -1531,7 +1626,7 @@ def run_agent(
     on_wait_tick=None, on_result=None, on_permission=None, on_denial=None,
 ) -> tuple[bool, list[str]]:
     session.ensure_fresh()
-    prompt = build_prompt(channel, commands, first_turn=session.turns == 0)
+    prompt = build_prompt(channel, commands, first_turn=session.first_turn)
     t0 = time.time()
     ok, results = session.run_turn(
         prompt,
@@ -1541,6 +1636,12 @@ def run_agent(
         on_permission=on_permission,
         on_denial=on_denial,
     )
+    if not ok:
+        # A failed turn on a resumed conversation may mean the resume itself
+        # is what is broken (overflowing or corrupt transcript) — the next
+        # spawn starts clean instead of looping on it. Memory is best-effort;
+        # answering is not.
+        session.force_fresh = True
     logging.info(
         "turn %s (%s) %d result(s), %d steered, in %.1fs: %.500s",
         "ok" if ok else "FAILED", channel, len(results), session.injected,
