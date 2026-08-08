@@ -106,7 +106,11 @@ scan: {{DIGEST_LABELS}}.
    comes back null, do exactly that and carry on.
 8. Send the digest (format per brief, including the sections from steps 6–7)
    through **scripts/notify.py**, never with send_message and never by
-   hand-rolling a bridge POST:
+   hand-rolling a bridge POST. Formatting is not optional: a blank line
+   between every two bullets and around every section header (brief →
+   Spacing). Before writing the file, re-read the text and make sure no two
+   bullet lines are adjacent — a dense wall is the one complaint the owner
+   has actually made about digests:
 
      write the digest to state/tmp/digest.txt (UTF-8), then run
      `py -3 scripts/notify.py --file state\tmp\digest.txt`
