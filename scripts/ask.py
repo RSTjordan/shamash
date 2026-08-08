@@ -35,6 +35,16 @@ import sys
 import time
 import urllib.request
 
+# The answer comes back in whatever language the poll was written in. On a
+# Windows console that is cp1252, so printing a Hebrew option crashed the
+# script AFTER the tap had already been consumed — the vote survived only in
+# notify.log. The caller must never lose an answer to the console codepage.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import config
 import notify
